@@ -93,3 +93,34 @@ def load_yaml_file(path: str | Path) -> dict[str, Any]:
         current[key] = value
 
     return root
+
+patterns = [
+    # --- DRUG (Farmaci) ---
+    {"label": "DRUG", "pattern": [{"LOWER": "aspirina"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "ibuprofene"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "metformina"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "paracetamolo"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "eparina"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "trastuzumab"}, {"LOWER": "emtansine"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "acido"}, {"LOWER": "clavulanico"}]},
+    
+    # --- DISEASE (Malattie e Sintomi) ---
+    {"label": "DISEASE", "pattern": [{"LOWER": "covid-19"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "polmonite"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "diabete"}, {"LOWER": "di"}, {"LOWER": "tipo"}, {"LOWER": "2"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "ipertensione"}, {"LOWER": "arteriosa"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "appendicite"}, {"LOWER": "acuta"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "infarto"}, {"LOWER": "miocardico"}, {"LOWER": "acuto"}]},
+    
+    # --- PROCEDURE (Procedure Mediche/Esami) ---
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "risonanza"}, {"LOWER": "magnetica"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "mri"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "tac"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "biopsia"}, {"LOWER": "epatica"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "elettrocardiogramma"}]},
+    
+    # --- ANATOMY (Anatomia) ---
+    {"label": "ANATOMY", "pattern": [{"LOWER": "femore"}, {"LOWER": "destro"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "polmone"}, {"LOWER": "sinistro"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "miocardio"}]}
+]

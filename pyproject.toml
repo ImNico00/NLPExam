@@ -29,6 +29,8 @@ torchvision = [
 sentencepiece = "^0.2.1"
 protobuf = "^7.35.0"
 cairosvg = "^2.9.0"
+spacy = "^3.8.14"
+click = "^8.4.1"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "*"

@@ -7,9 +7,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 RUN_TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
 RUN_ID="run_${RUN_TIMESTAMP}"
-RUNS_DIR="${RUNS_DIR:-pipeline_exam/run_logs/pipeline_step_runs}"
+RUNS_DIR="${RUNS_DIR:-pipeline_exam/run_logs/pipeline_step01_runs}"
 RUN_DIR="${RUNS_DIR}/${RUN_ID}"
-LOG_FILE="${RUN_DIR}/pipeline_step.log"
+LOG_FILE="${RUN_DIR}/pipeline_step01.log"
 META_FILE="${RUN_DIR}/run_metadata.txt"
 COMMAND_FILE="${RUN_DIR}/command.txt"
 
@@ -21,12 +21,19 @@ else
   PYTHON_BIN="python3"
 fi
 
+GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+GIT_DIRTY="false"
+if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+  GIT_DIRTY="true"
+fi
+
 COMMAND=(
   "poetry"
   "run"
   "${PYTHON_BIN}"
   -m
-  pipeline_exam.src.start_exam
+  pipeline_exam.src.step01
   "$@"
 )
 
@@ -35,6 +42,9 @@ COMMAND=(
   echo "run_timestamp=${RUN_TIMESTAMP}"
   echo "repo_root=."
   echo "python_bin=${PYTHON_BIN}"
+  echo "git_branch=${GIT_BRANCH}"
+  echo "git_commit=${GIT_COMMIT}"
+  echo "git_dirty=${GIT_DIRTY}"
   echo "host=$(hostname)"
   echo "user=${USER:-unknown}"
   echo "started_at=$(date +"%Y-%m-%d %H:%M:%S %Z")"
@@ -43,7 +53,7 @@ COMMAND=(
 printf '%q ' "${COMMAND[@]}" > "${COMMAND_FILE}"
 printf '\n' >> "${COMMAND_FILE}"
 
-echo "[${RUN_ID}] starting Exam Pipeline Steps"
+echo "[${RUN_ID}] starting Pipeline Step01"
 echo "[${RUN_ID}] logs: ${LOG_FILE}"
 echo "[${RUN_ID}] metadata: ${META_FILE}"
 
