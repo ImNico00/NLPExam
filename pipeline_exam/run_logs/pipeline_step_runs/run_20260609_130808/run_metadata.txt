@@ -1,0 +1,9 @@
+run_id=run_20260609_130808
+run_timestamp=20260609_130808
+repo_root=.
+python_bin=python3
+host=ErPC-Sgravato
+user=nico
+started_at=2026-06-09 13:08:08 CEST
+finished_at=2026-06-09 13:12:30 CEST
+exit_code=0
