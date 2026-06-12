@@ -33,7 +33,7 @@ COMMAND=(
   "run"
   "${PYTHON_BIN}"
   -m
-  pipeline_exam.src.step02
+  pipeline_exam.src.step02_build_vocab
   "$@"
 )
 

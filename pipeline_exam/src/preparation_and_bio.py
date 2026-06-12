@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import spacy
 from spacy.language import Language
+from sklearn.model_selection import train_test_split #type: ignore
 import pandas as pd
 
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file, patterns
@@ -27,18 +28,23 @@ def initialize_ner_dataset(nlp: Language, df: pd.DataFrame) -> pd.DataFrame:
         sentences_array.append(["", "", ""])
     return pd.DataFrame(sentences_array, columns=["Sentence_ID", "Token", "BIO_Tag"])
 
-def format_pipeline_step_summary(
+def format_pipeline_step01_summary(
     *,
-    dataset_path,
-    output_tokenized_bio,
-    size_df_tokens,
-    output_dir
-    ) -> str:
+    dataset_path: str,
+    train_path: str,
+    val_path: str,
+    test_path: str,
+    size_train: int,
+    size_val: int,
+    size_test: int,
+    output_dir: str
+) -> str:
     summary = (
-        "Pipeline Step summary:\n"
-        f"- Dataset Path: {dataset_path}\n"
-        f"- Dataset BIO Tokenized: {output_tokenized_bio}\n"
-        f"- Size Dataset BIO Tokenized: {size_df_tokens}\n"
+        "Pipeline Step01 summary (Data Split & Tokenization):\n"
+        f"- Original Dataset: {dataset_path}\n"
+        f"- Train TSV Path: {train_path} ({size_train} referti)\n"
+        f"- Validation TSV Path: {val_path} ({size_val} referti)\n"
+        f"- Test TSV Path: {test_path} ({size_test} referti)\n"
         f"- Output Directory: {output_dir}"
     )
     return summary
@@ -49,10 +55,13 @@ def build_step01_parser(default_repo_root: Path) -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
-    dataset_dir = default_repo_root / "data"
-    parser.add_argument("--dataset-path", default=str(dataset_dir / "perizie_mediche_sintetiche.csv"))
+    raw_dir = default_repo_root / "pipeline_exam" / "data" / "raw"
+    parser.add_argument("--dataset-path", default=str(raw_dir / "perizie_mediche_sintetiche.csv"))
     parser.add_argument("--output-dir", default=str(processed_dir))
-    parser.add_argument("--output-tokenized-bio", default=str(processed_dir / "perizie_tokenizzate_BIO.tsv"))
+    parser.add_argument("--train-output", default=str(processed_dir / "perizie_bio_train.tsv"))
+    parser.add_argument("--val-output", default=str(processed_dir / "perizie_bio_val.tsv"))
+    parser.add_argument("--test-output", default=str(processed_dir / "perizie_bio_test.tsv"))
+    parser.add_argument("--seed-split", default=int(42))
     parser.add_argument("--logging-level", default="INFO")
     return parser
 
@@ -62,22 +71,43 @@ def run_step01(args: argparse.Namespace) -> None:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     dataset_path = Path(args.dataset_path)
-    output_tokenized_bio = Path(args.output_tokenized_bio)
+    train_output = Path(args.train_output)
+    val_output = Path(args.val_output)
+    test_output = Path(args.test_output)
+    seed = args.seed_split
 
-    nlp = spacy.blank("it")
+    nlp = spacy.blank("en")
     ruler = nlp.add_pipe("entity_ruler")
 
     ruler.add_patterns(patterns)
     df = pd.read_csv(dataset_path)
-    df_tokens = initialize_ner_dataset(nlp, df)
-    df_tokens.to_csv(output_tokenized_bio, sep='\t', index=False)
+
+    LOGGER.info("Splitting del dataset (80% Train, 10% Val, 10% Test)...")
+    df_train, df_temp = train_test_split(df, test_size=0.2, random_state=seed)
+    df_val, df_test = train_test_split(df_temp, test_size=0.5, random_state=seed)
+
+    LOGGER.info("Tokenizzazione e BIO tagging sul Train set...")
+    df_train_tokens = initialize_ner_dataset(nlp, df_train)
+    df_train_tokens.to_csv(train_output, sep='\t', index=False)
+
+    LOGGER.info("Tokenizzazione e BIO tagging sul Validation set...")
+    df_val_tokens = initialize_ner_dataset(nlp, df_val)
+    df_val_tokens.to_csv(val_output, sep='\t', index=False)
+
+    LOGGER.info("Tokenizzazione e BIO tagging sul Test set...")
+    df_test_tokens = initialize_ner_dataset(nlp, df_test)
+    df_test_tokens.to_csv(test_output, sep='\t', index=False)
 
     LOGGER.info(
         "%s",
-        format_pipeline_step_summary(
+        format_pipeline_step01_summary(
             dataset_path = str(dataset_path),
-            output_tokenized_bio = str(output_tokenized_bio),
-            size_df_tokens = len(df_tokens),
+            train_path=str(train_output),
+            val_path=str(val_output),
+            test_path=str(test_output),
+            size_train=len(df_train),
+            size_val=len(df_val),
+            size_test=len(df_test),
             output_dir=str(out_dir)
         ),
     )

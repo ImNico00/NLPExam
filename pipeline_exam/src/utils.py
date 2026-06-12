@@ -4,17 +4,6 @@ import logging
 import os
 from pathlib import Path
 from typing import Any
-from PIL import Image
-
-def imposta_sfondo_bianco(image):
-    """Converte in modo sicuro qualsiasi immagine in RGB, riempiendo la trasparenza di bianco."""
-    
-    if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
-        image = image.convert('RGBA')
-        bg = Image.new("RGB", image.size, (255, 255, 255))
-        bg.paste(image, mask=image.split()[3])
-        return bg
-    return image.convert("RGB")
 
 def configure_logging(level: str = "INFO") -> None:
     logging.basicConfig(

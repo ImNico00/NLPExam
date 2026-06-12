@@ -1,5 +1,0 @@
-22:35:06 | INFO    | Pipeline Step summary:
-- Dataset Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/data/perizie_mediche_sintetiche.csv
-- Dataset BIO Tokenized: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/perizie_tokenizzate_BIO.tsv
-- Size Dataset BIO Tokenized: 1399
-- Output Directory: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed

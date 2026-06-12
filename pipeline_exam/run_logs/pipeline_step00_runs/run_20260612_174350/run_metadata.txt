@@ -1,0 +1,10 @@
+run_id=run_20260612_174350
+run_timestamp=20260612_174350
+repo_root=.
+python_bin=python3
+git_branch=main
+git_commit=8efad5bb9eaf7f79095d8100ed03ea39ea5de31c
+git_dirty=true
+host=ErPC-Sgravato
+user=nico
+started_at=2026-06-12 17:43:50 CEST

@@ -7,9 +7,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 RUN_TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
 RUN_ID="run_${RUN_TIMESTAMP}"
-RUNS_DIR="${RUNS_DIR:-pipeline_exam/run_logs/pipeline_step01_runs}"
+RUNS_DIR="${RUNS_DIR:-pipeline_exam/run_logs/pipeline_step04_runs}"
 RUN_DIR="${RUNS_DIR}/${RUN_ID}"
-LOG_FILE="${RUN_DIR}/pipeline_step01.log"
+LOG_FILE="${RUN_DIR}/pipeline_step04.log"
 META_FILE="${RUN_DIR}/run_metadata.txt"
 COMMAND_FILE="${RUN_DIR}/command.txt"
 
@@ -33,7 +33,7 @@ COMMAND=(
   "run"
   "${PYTHON_BIN}"
   -m
-  pipeline_exam.src.step01_preprocess
+  pipeline_exam.src.step04_evaluate
   "$@"
 )
 
@@ -53,7 +53,7 @@ COMMAND=(
 printf '%q ' "${COMMAND[@]}" > "${COMMAND_FILE}"
 printf '\n' >> "${COMMAND_FILE}"
 
-echo "[${RUN_ID}] starting Pipeline Step01"
+echo "[${RUN_ID}] starting Pipeline step04"
 echo "[${RUN_ID}] logs: ${LOG_FILE}"
 echo "[${RUN_ID}] metadata: ${META_FILE}"
 
