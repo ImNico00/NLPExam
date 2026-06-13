@@ -115,6 +115,8 @@ def run_step04(args: argparse.Namespace) -> None:
         vocab = pickle.load(f)
         
     tokenized_dataset_path = Path(args.tokenized_dataset_path)
+    if not tokenized_dataset_path.exists():
+        raise FileNotFoundError(f"Test dataset not found: {tokenized_dataset_path}")
 
     # 2. Cerchiamo tutti i modelli salvati nella cartella
     model_files = list(models_dir.glob("*_model.pth"))
@@ -134,7 +136,6 @@ def run_step04(args: argparse.Namespace) -> None:
         match(model_id):
             case "bert_ner" | "biobert_ner":
                 canonical_model = CANONICAL_MODELS["bert"] if model_id == "bert_ner" else CANONICAL_MODELS["biobert"]
-                
                 dataset = TransformerNERDataset(
                     file_path=tokenized_dataset_path, 
                     model_name=canonical_model,
@@ -154,9 +155,12 @@ def run_step04(args: argparse.Namespace) -> None:
             hidden_dim=args.hidden_dim,
             hf_token=huggingface_api_key
         ).to(dev)
-        model.load_state_dict(torch.load(model_path, map_location=dev))
+
+        checkpoint = torch.load(model_path, map_location=dev, weights_only=False)
+        model.load_state_dict(checkpoint["model_state_dict"])
+
         labels_tags, preds_tags = evaluate_model(model, dataloader, dev, vocab)
-        labels = list(set(labels_tags))
+        labels = sorted(set(labels_tags))
         if "O" in labels: 
             labels.remove("O") # Togliamo "O" per calcolare la F1 vera sulle entità
             

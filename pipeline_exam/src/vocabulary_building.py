@@ -25,13 +25,14 @@ def format_pipeline_step02_summary(
         f"- Vocabulary Path: {vocab_path}\n"
         f"- Vocabulary Size: {vocab_size} unique tokens\n"
         f"- Classes Detected: {num_classes} BIO tags\n"
+        f"- Batch Size: {batch_size}\n"
         f"- Output Directory: {output_dir}"
     )
     return summary
 
 def build_step02_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Start Exam Step02 PyTorch Data Loading and Vocabulary Creation",
+        description="Step02 Vocabulary Creation from Training BIO Dataset",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
@@ -51,6 +52,9 @@ def run_step02(args: argparse.Namespace) -> None:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     tokenized_dataset_path = Path(args.tokenized_dataset_path)
+    if not tokenized_dataset_path.exists():
+        raise FileNotFoundError(f"Tokenized dataset not found: {tokenized_dataset_path}")
+
     vocab_path = Path(args.vocab_path)
     batch_size = args.batch_size
 

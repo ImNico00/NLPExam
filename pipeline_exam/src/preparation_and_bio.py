@@ -13,10 +13,14 @@ from pipeline_exam.src.utils import configure_logging
 LOGGER = logging.getLogger(__name__)
 
 def initialize_ner_dataset(nlp: Language, df: pd.DataFrame) -> pd.DataFrame:
+    required_columns = {"id_referto", "testo_perizia"}
+    missing = required_columns - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
     sentences_array = []
     for _, row in df.iterrows():
         id_referto = row['id_referto']
-        testo = row['testo_perizia']
+        testo = str(row["testo_perizia"]) if pd.notna(row["testo_perizia"]) else ""
         doc = nlp(testo)
         for token in doc:
             if not token.is_space:
@@ -51,7 +55,7 @@ def format_pipeline_step01_summary(
 
 def build_step01_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Start Exam Step01 Data Preparation With Ground Truth Using Rule-Based Approach",
+        description="Step01 Data Split, Tokenization and Automatic BIO Annotation",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"

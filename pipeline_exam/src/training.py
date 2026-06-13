@@ -4,6 +4,7 @@ import argparse
 import logging
 import pickle
 from pathlib import Path
+from typing import Any, Dict
 
 import os
 import copy
@@ -24,7 +25,7 @@ LOGGER = logging.getLogger(__name__)
 
 # --- AGGIORNATO: Funzione training che accetta train e val dataloader ---
 def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val_dataloader : DataLoader, 
-             dev : device, optimizer : Optimizer, criterion : CrossEntropyLoss, output_model_path: Path) -> tuple[float, float]:
+             dev : device, optimizer : Optimizer, criterion : CrossEntropyLoss) -> tuple[Dict[str, Any] | None, float, float]:
     
     best_val_loss = float('inf')
     best_model_state = None
@@ -75,12 +76,7 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
             # Salviamo una copia in memoria dei pesi migliori
             best_model_state = copy.deepcopy(model.state_dict())
 
-    # Alla fine di tutte le epoche, salviamo su disco il modello migliore
-    if best_model_state is not None:
-        torch.save(best_model_state, output_model_path)
-        LOGGER.info(f"Modello finale salvato su {output_model_path} (Basato sulla migliore Val Loss: {best_val_loss:.4f})")
-
-    return avg_train_loss, best_val_loss
+    return best_model_state, avg_train_loss, best_val_loss
 
 def format_pipeline_step03_summary(
     *,
@@ -103,7 +99,7 @@ def format_pipeline_step03_summary(
     summary = (
         "Pipeline Step03 summary:\n"
         f"- Model ID: {model_id}\n"
-        f"- HuggingFace API Key Setted: {huggingface_api_key_setted}\n"
+        f"- HuggingFace API Key Set: {huggingface_api_key_setted}\n"
         f"- Train Dataset Path: {train_path}\n"
         f"- Val Dataset Path: {val_path}\n"
         f"- Vocabulary Path: {vocab_path}\n"
@@ -113,6 +109,7 @@ def format_pipeline_step03_summary(
         f"- Learning Rate: {lr}\n"
         f"- Device: {device_used}\n"
         f"- Final Train Loss: {final_train_loss:.4f}\n"
+        f"- Logging Level: {logging_level}\n"
         f"- Best Validation Loss: {best_val_loss:.4f}"
     )
     return summary
@@ -173,10 +170,15 @@ def run_step03(args: argparse.Namespace) -> None:
     train_dataset_path = Path(args.tokenized_train_path)
     val_dataset_path = Path(args.tokenized_val_path)
 
+    if not train_dataset_path.exists():
+        raise FileNotFoundError(f"Train dataset not found: {train_dataset_path}")
+
+    if not val_dataset_path.exists():
+        raise FileNotFoundError(f"Validation dataset not found: {val_dataset_path}")
+
+    canonical_model = CANONICAL_MODELS["bert"] if model_id == "bert_ner" else CANONICAL_MODELS["biobert"]
     match(model_id):
         case "bert_ner" | "biobert_ner":
-            canonical_model = CANONICAL_MODELS["bert"] if model_id == "bert_ner" else CANONICAL_MODELS["biobert"]
-            
             train_dataset = TransformerNERDataset(file_path=train_dataset_path, model_name=canonical_model, hf_token=huggingface_api_key, vocab=vocab)
             train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=transformer_collate)
             val_dataset = TransformerNERDataset(file_path=val_dataset_path, model_name=canonical_model, hf_token=huggingface_api_key, vocab=vocab)
@@ -203,21 +205,38 @@ def run_step03(args: argparse.Namespace) -> None:
         hidden_dim=hidden_dim,
         hf_token=huggingface_api_key
     ).to(dev)
-    
-    optimizer = optim.Adam(model.parameters(), lr=lr_to_use)
+
+    optimizer = (
+        optim.AdamW(model.parameters(), lr=lr_to_use, weight_decay=0.01)
+        if model_id in {"bert_ner", "biobert_ner"}
+        else optim.Adam(model.parameters(), lr=lr_to_use)
+    )
     output_model_path = out_models_dir / f"{model_id}_model.pth"
     
     LOGGER.info(f"Inizio Addestramento per {epochs} epoche...")
-    final_train_loss, best_val_loss = training(
+    best_model_state, final_train_loss, best_val_loss = training(
         model=model,
         epochs=epochs,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
         dev=dev,
         optimizer=optimizer,
-        criterion=criterion,
-        output_model_path=output_model_path
+        criterion=criterion
     )
+
+    if best_model_state is not None:
+        torch.save({
+        "model_state_dict": best_model_state,
+        "model_id": model_id,
+        "vocab": vocab,
+        "num_classes": len(vocab.tag2idx),
+        "embedding_dim": embedding_dim,
+        "hidden_dim": hidden_dim,
+        "best_val_loss": best_val_loss,
+        "canonical_model": canonical_model if model_id in {"bert_ner", "biobert_ner"} else None
+    }, output_model_path)
+        LOGGER.info(f"Modello finale salvato su {output_model_path} (Basato sulla migliore Val Loss: {best_val_loss:.4f})")
+
     
     LOGGER.info(
         "\n%s",
