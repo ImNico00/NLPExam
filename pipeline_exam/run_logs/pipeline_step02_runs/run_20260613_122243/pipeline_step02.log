@@ -1,0 +1,8 @@
+12:22:49 | INFO    | Costruzione Vocabolario utilizzando ESCLUSIVAMENTE il set di addestramento: perizie_bio_train.tsv...
+12:22:49 | INFO    | Vocabolario salvato in: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/vocab.pkl
+12:22:49 | INFO    | Pipeline Step02 summary:
+- Train Dataset Path (for Vocab): /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/perizie_bio_train.tsv
+- Vocabulary Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/vocab.pkl
+- Vocabulary Size: 540 unique tokens
+- Classes Detected: 6 BIO tags
+- Output Directory: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed

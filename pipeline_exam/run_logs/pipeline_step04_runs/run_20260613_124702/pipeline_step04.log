@@ -1,0 +1,77 @@
+12:47:07 | INFO    | 🚀 Avvio Evaluation sul dispositivo: CUDA
+12:47:07 | INFO    | Trovati 3 modelli da valutare. Inizio ciclo...
+12:47:07 | INFO    | 
+==================================================
+Valutazione Modello: BERT_NER
+==================================================
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at bert-base-cased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+12:47:11 | INFO    | Classification Report (BERT_NER):
+              precision    recall  f1-score   support
+
+   I-DISEASE       0.82      0.92      0.87        25
+  I-CHEMICAL       0.00      0.00      0.00         1
+   B-DISEASE       0.89      0.88      0.88        48
+  B-CHEMICAL       1.00      0.91      0.95        22
+
+   micro avg       0.89      0.89      0.89        96
+   macro avg       0.68      0.68      0.68        96
+weighted avg       0.89      0.89      0.89        96
+
+12:47:12 | INFO    | 
+Pipeline Step04 summary (BERT_NER):
+- Model ID: bert_ner
+- Model Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/models/bert_ner_model.pth
+- Confusion Matrix: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/plots/bert_ner_confusion_matrix.png
+- Overall Accuracy: 0.9726
+- Macro F1-Score (No 'O'): 0.6761
+12:47:12 | INFO    | 
+==================================================
+Valutazione Modello: BILSTM
+==================================================
+12:47:12 | INFO    | Classification Report (BILSTM):
+              precision    recall  f1-score   support
+
+   I-DISEASE       0.75      0.72      0.73        25
+  I-CHEMICAL       0.00      0.00      0.00         1
+   B-DISEASE       0.90      0.77      0.83        48
+  B-CHEMICAL       1.00      0.82      0.90        22
+
+   micro avg       0.88      0.76      0.82        96
+   macro avg       0.66      0.58      0.62        96
+weighted avg       0.88      0.76      0.81        96
+
+12:47:12 | INFO    | 
+Pipeline Step04 summary (BILSTM):
+- Model ID: bilstm
+- Model Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/models/bilstm_model.pth
+- Confusion Matrix: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/plots/bilstm_confusion_matrix.png
+- Overall Accuracy: 0.9544
+- Macro F1-Score (No 'O'): 0.6165
+12:47:12 | INFO    | 
+==================================================
+Valutazione Modello: BIOBERT_NER
+==================================================
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at emilyalsentzer/Bio_ClinicalBERT and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+12:47:15 | INFO    | Classification Report (BIOBERT_NER):
+              precision    recall  f1-score   support
+
+   I-DISEASE       0.92      0.88      0.90        25
+  I-CHEMICAL       0.00      0.00      0.00         1
+   B-DISEASE       0.88      0.90      0.89        48
+  B-CHEMICAL       1.00      0.91      0.95        22
+
+   micro avg       0.91      0.89      0.90        96
+   macro avg       0.70      0.67      0.68        96
+weighted avg       0.91      0.89      0.90        96
+
+12:47:15 | INFO    | 
+Pipeline Step04 summary (BIOBERT_NER):
+- Model ID: biobert_ner
+- Model Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/models/biobert_ner_model.pth
+- Confusion Matrix: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/plots/biobert_ner_confusion_matrix.png
+- Overall Accuracy: 0.9757
+- Macro F1-Score (No 'O'): 0.6842
+12:47:15 | INFO    | 
+✅ Evaluation Loop Completato per tutti i modelli!

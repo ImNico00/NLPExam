@@ -1,0 +1,501 @@
+id_referto,testo_perizia
+1,The 65-year-old patient presents a clinical history of Type 2 Diabetes and arterial hypertension.
+2,Prescribed treatment with Metformin 500mg twice a day after meals.
+3,Magnetic resonance imaging (MRI) of the left lung revealed signs compatible with mild pneumonia.
+4,Patient intubated due to severe respiratory complications from COVID-19 in the intensive care unit.
+5,Absolute rest and intake of Ibuprofen 400mg are recommended for acute pain in the right femur.
+6,No signs of adverse reaction to Trastuzumab emtansine during the last chemotherapy cycle.
+7,The subject denies known drug allergies but reports episodes of childhood asthma.
+8,"The complete blood count (CBC) is normal, proceeding with evaluation for discharge."
+9,"Suspected tear of the ulnar collateral ligament, the patient is awaiting surgical reconstruction."
+10,Administered 50 mg of Aspirin per day for the prophylaxis of cardiovascular events.
+11,"Marked hypercholesterolemia is observed, starting statin therapy is suggested."
+12,Dr. Rossi from Santo Spirito Hospital confirmed the diagnosis of acute appendicitis.
+13,The electrocardiogram shows no acute ischemic alterations of the myocardium.
+14,Patient arrived at the Emergency Room for suspected acute myocardial infarction; sublingual nitroglycerin administered.
+15,A cranial CT scan without contrast is requested to rule out hemorrhages in the frontal lobe.
+16,The patient complains of severe migraine previously treated with Paracetamol without success.
+17,"Fasting blood glucose level is 140 mg/dL, confirming hyperglycemia."
+18,An abdominal ultrasound is scheduled for the evaluation of suspected gallstones.
+19,Liver biopsy performed under ultrasound guidance; awaiting histological examination.
+20,Probable ototoxicity is reported following prolonged treatment with aminoglycoside antibiotics.
+21,The patient's father has a history of chronic renal failure.
+22,No evidence of bone metastases on the total body bone scan.
+23,Omeprazole 20mg is prescribed in the morning on an empty stomach for gastroesophageal reflux disease.
+24,Abdominal physical examination reveals pain on palpation in the right lower quadrant.
+25,"Patient admitted for new-onset atrial fibrillation, Heparin therapy is initiated."
+26,Chest X-ray shows no active bronchopneumonia foci.
+27,"Suspected open-angle glaucoma, thorough ophthalmological examination required."
+28,Administered Diazepam 5mg intravenously to sedate the epileptic seizure.
+29,The patient reports exertional dyspnea and persistent dry cough for two weeks.
+30,Echo-color Doppler of the supra-aortic trunks reveals bilateral atheromatous plaques.
+31,Radiotherapy cycle started for infiltrating ductal carcinoma of the right breast.
+32,The use of Salbutamol as needed is recommended for the control of asthma attacks.
+33,Blood chemistry tests compatible with severe iron-deficiency anemia.
+34,The rapid test for group A beta-hemolytic streptococcus was positive.
+35,Patient in follow-up for previous excision of cutaneous melanoma.
+36,The patient's mother died of ovarian cancer at the age of 50.
+37,"A picture of subclinical hypothyroidism is noted, replacement therapy is not recommended at present."
+38,Colonoscopy performed with excision of a sessile polyp of the sigmoid colon.
+39,Amoxicillin + Clavulanic Acid prescribed for 6 days for suspected bacterial sinusitis.
+40,The patient denies alcohol consumption and cigarette smoking.
+41,"Crohn's disease suspected, fecal calprotectin test indicated."
+42,The electroencephalogram (EEG) shows a tracing within normal limits for the age.
+43,A widespread skin rash is reported following the intake of Penicillin.
+44,Spirometry documents a moderate degree of obstructive deficit.
+45,Orthopedic evaluation required for suspected tear of the medial meniscus of the left knee.
+46,Patient discharged with a diagnosis of spontaneously resolved renal colic.
+47,The throat swab is negative for SARS-CoV-2.
+48,Suturing performed in the Emergency Room for a lacerated-contused wound on the left eyebrow arch.
+49,"The PSA level is elevated, urological examination is booked."
+50,A low-sodium diet and weight loss are recommended for blood pressure control.
+51,High-resolution chest CT (HRCT) reveals multiple bilateral pulmonary nodules of undetermined nature.
+52,Patient on chronic treatment with Levothyroxine 100 mcg for Hashimoto's thyroiditis.
+53,The presence of massive pleural effusion at the left base is ruled out.
+54,The paternal grandfather suffered from severe Alzheimer's disease.
+55,Absence of palpable laterocervical or supraclavicular lymphadenopathies.
+56,Brain MRI with contrast indicated for suspected meningioma.
+57,The patient refuses to take tricyclic antidepressants despite the diagnosis of major depression.
+58,"On cardiac auscultation, a 3/6 systolic murmur is appreciated over the mitral focus."
+59,Empiric antibiotic therapy initiated with Ceftriaxone 2g IV pending the antibiogram.
+60,The clinical picture is suggestive of seropositive rheumatoid arthritis.
+61,No focal neurological deficit involving the cranial nerves.
+62,Dermatological examination is recommended for evaluation of an atypical nevus on the dorsal region.
+63,FDG PET-CT shows no areas of pathological tracer hyperaccumulation.
+64,Brother died of amyotrophic lateral sclerosis (ALS) at age 55.
+65,"Patient with exacerbated COPD, a course of oral corticosteroids is prescribed."
+66,Thyroid ultrasound shows a solid hypoechoic nodule in the right lobe measuring 1.5 cm.
+67,Administered morphine 10 mg subcutaneously for oncological pain control.
+68,"Transaminases (AST/ALT) are severely elevated, suspected acute hepatitis."
+69,Absence of obvious bone fractures on the X-ray of the pelvis and hips.
+70,"The patient complains of paresthesia in the lower limbs, probable diabetic neuropathy."
+71,Esophagogastroduodenoscopy (EGD) booked for suspected bleeding peptic ulcer.
+72,"Incidental finding of a 3 cm left cortical renal cyst, uncomplicated."
+73,Pantoprazole therapy suspended due to resolution of dyspeptic symptoms.
+74,"Psychiatric consultation confirms generalized anxiety disorder, Citalopram initiated."
+75,The sister was recently diagnosed with celiac disease.
+76,No signs of deep vein thrombosis (DVT) on lower limb Doppler ultrasound.
+77,Protected discharge with activation of integrated home assistance (ADI).
+78,Brachio-metacarpal cast applied for a compound fracture of the distal radius.
+79,Urine culture positive for Escherichia coli with significant bacterial load.
+80,"Suspected retinal detachment in the right eye, urgently referred to ophthalmology."
+81,The patient does not tolerate ACE inhibitors due to a drug-induced dry cough.
+82,"Macrocytic anemia detected, vitamin B12 and folate dosage recommended."
+83,CT angiography rules out acute pulmonary embolism.
+84,Obese patient (BMI 35) with obstructive sleep apnea syndrome (OSAS).
+85,Maternal aunt affected by metastatic breast cancer.
+86,Timolol-based eye drops prescribed for intraocular pressure control.
+87,The radiological picture is compatible with severe osteoarthritis of the right hip (coxarthrosis).
+88,Administration of quadrivalent influenza vaccine with no immediate adverse reactions.
+89,"Suspected hemorrhagic cystitis, abundant hydration and Ciprofloxacin recommended."
+90,Fundus examination reveals no signs of proliferative diabetic retinopathy.
+91,The patient has been taking oral contraceptives regularly for 5 years.
+92,Uterine curettage performed for incomplete spontaneous abortion.
+93,No pulsating abdominal masses suggestive of aortic aneurysm are appreciated.
+94,Patient in Propofol-induced pharmacological coma post-severe traumatic brain injury.
+95,Erythematous-desquamative lesion on the scalp compatible with psoriasis.
+96,Pure tone audiometry reveals symmetrical bilateral sensorineural hearing loss.
+97,"Myasthenia gravis suspected, anti-acetylcholine receptor antibody test indicated."
+98,The daughter presents recurrent episodes of acute otitis media.
+99,Antimalarial prophylaxis with Mefloquine recommended ahead of travel to an endemic area.
+100,"Absence of signs of peritonitis, abdomen is soft and non-tender on rebound."
+101,Scheduled a follow-up endoscopy to monitor the condition of the liver.
+102,Patient is currently on Pantoprazole for the management of migraine.
+103,Emergency CT scan was performed on the abdomen due to suspected celiac disease.
+104,Patient denies any history of hyperlipidemia but reports mild discomfort in the brain.
+105,"The CT scan revealed abnormalities in the brain, suggesting early-stage hypertension."
+106,"The ECG revealed abnormalities in the left knee, suggesting early-stage COPD."
+107,Discharged with a prescription for Citalopram and instructions to return if hyperlipidemia symptoms persist.
+108,Scheduled a follow-up endoscopy to monitor the condition of the liver.
+109,Patient denies any history of hypothyroidism but reports mild discomfort in the right lung.
+110,Emergency colonoscopy was performed on the brain due to suspected pneumonia.
+111,A recent CT scan of the brain confirmed the presence of osteoarthritis.
+112,Patient is currently on Sertraline for the management of bronchial asthma.
+113,Patient denies any history of osteoarthritis but reports mild discomfort in the right shoulder.
+114,The patient presents with symptoms indicative of major depressive disorder. Treatment with Metformin is recommended.
+115,A recent spirometry of the thyroid gland confirmed the presence of chronic kidney disease.
+116,Patient denies any history of osteoarthritis but reports mild discomfort in the cervical spine.
+117,Emergency EEG was performed on the abdomen due to suspected major depressive disorder.
+118,The patient presents with symptoms indicative of bronchial asthma. Treatment with Sertraline is recommended.
+119,"The biopsy revealed abnormalities in the chest, suggesting early-stage anemia."
+120,Scheduled a follow-up EEG to monitor the condition of the left knee.
+121,Discharged with a prescription for Lisinopril and instructions to return if rheumatoid arthritis symptoms persist.
+122,Discharged with a prescription for Levothyroxine and instructions to return if rheumatoid arthritis symptoms persist.
+123,A recent endoscopy of the abdomen confirmed the presence of gastric ulcer.
+124,Emergency X-ray was performed on the chest due to suspected migraine.
+125,Advised the patient to increase dosage of Lisinopril due to worsening bronchial asthma.
+126,Advised the patient to increase dosage of Omeprazole due to worsening chronic kidney disease.
+127,Patient is currently on Aspirin for the management of migraine.
+128,Patient is currently on Gabapentin for the management of chronic kidney disease.
+129,No evidence of hypertension was found during the last blood chemistry panel.
+130,Patient denies any history of psoriasis but reports mild discomfort in the abdomen.
+131,Patient is currently on Levothyroxine for the management of psoriasis.
+132,Patient is currently on Amoxicillin for the management of COPD.
+133,Patient denies any history of type 2 diabetes but reports mild discomfort in the brain.
+134,No evidence of psoriasis was found during the last spirometry.
+135,The patient presents with symptoms indicative of osteoarthritis. Treatment with Aspirin is recommended.
+136,Discharged with a prescription for Amoxicillin and instructions to return if pneumonia symptoms persist.
+137,"The ultrasound revealed abnormalities in the right shoulder, suggesting early-stage rheumatoid arthritis."
+138,"The colonoscopy revealed abnormalities in the chest, suggesting early-stage type 2 diabetes."
+139,Emergency echocardiogram was performed on the left eye due to suspected celiac disease.
+140,Patient denies any history of chronic kidney disease but reports mild discomfort in the thyroid gland.
+141,Scheduled a follow-up blood chemistry panel to monitor the condition of the abdomen.
+142,Discharged with a prescription for Amoxicillin and instructions to return if major depressive disorder symptoms persist.
+143,The patient presents with symptoms indicative of hyperlipidemia. Treatment with Metformin is recommended.
+144,Emergency echocardiogram was performed on the pelvis due to suspected bronchial asthma.
+145,Emergency ultrasound was performed on the abdomen due to suspected hypothyroidism.
+146,No evidence of type 2 diabetes was found during the last blood chemistry panel.
+147,Advised the patient to increase dosage of Amoxicillin due to worsening hypertension.
+148,Emergency ultrasound was performed on the chest due to suspected gastric ulcer.
+149,Advised the patient to increase dosage of Levothyroxine due to worsening hypothyroidism.
+150,Scheduled a follow-up blood chemistry panel to monitor the condition of the left knee.
+151,Emergency blood chemistry panel was performed on the abdomen due to suspected chronic kidney disease.
+152,Advised the patient to increase dosage of Atorvastatin due to worsening atrial fibrillation.
+153,Patient is currently on Atorvastatin for the management of major depressive disorder.
+154,Advised the patient to increase dosage of Gabapentin due to worsening atrial fibrillation.
+155,Discharged with a prescription for Levothyroxine and instructions to return if anemia symptoms persist.
+156,Advised the patient to increase dosage of Metformin due to worsening celiac disease.
+157,The patient presents with symptoms indicative of COPD. Treatment with Pantoprazole is recommended.
+158,Advised the patient to increase dosage of Albuterol due to worsening major depressive disorder.
+159,Patient denies any history of gastric ulcer but reports mild discomfort in the pelvis.
+160,Patient denies any history of atrial fibrillation but reports mild discomfort in the left eye.
+161,The patient presents with symptoms indicative of atrial fibrillation. Treatment with Ibuprofen is recommended.
+162,No evidence of gastric ulcer was found during the last MRI.
+163,No evidence of anemia was found during the last MRI.
+164,Discharged with a prescription for Metformin and instructions to return if rheumatoid arthritis symptoms persist.
+165,Advised the patient to increase dosage of Amoxicillin due to worsening rheumatoid arthritis.
+166,The patient presents with symptoms indicative of celiac disease. Treatment with Levothyroxine is recommended.
+167,Advised the patient to increase dosage of Losartan due to worsening chronic kidney disease.
+168,A recent ultrasound of the liver confirmed the presence of osteoarthritis.
+169,Scheduled a follow-up MRI to monitor the condition of the left knee.
+170,Emergency spirometry was performed on the pelvis due to suspected chronic kidney disease.
+171,Discharged with a prescription for Pantoprazole and instructions to return if celiac disease symptoms persist.
+172,Scheduled a follow-up colonoscopy to monitor the condition of the right lung.
+173,Patient is currently on Ibuprofen for the management of gastric ulcer.
+174,Patient denies any history of type 2 diabetes but reports mild discomfort in the cervical spine.
+175,Patient is currently on Lisinopril for the management of anemia.
+176,Patient is currently on Omeprazole for the management of chronic kidney disease.
+177,A recent biopsy of the chest confirmed the presence of migraine.
+178,Discharged with a prescription for Pantoprazole and instructions to return if COPD symptoms persist.
+179,A recent EEG of the liver confirmed the presence of hyperlipidemia.
+180,No evidence of rheumatoid arthritis was found during the last X-ray.
+181,Advised the patient to increase dosage of Citalopram due to worsening hypertension.
+182,Patient denies any history of hyperlipidemia but reports mild discomfort in the chest.
+183,Patient denies any history of anemia but reports mild discomfort in the pelvis.
+184,Emergency ultrasound was performed on the thyroid gland due to suspected pneumonia.
+185,A recent biopsy of the thyroid gland confirmed the presence of atrial fibrillation.
+186,Advised the patient to increase dosage of Aspirin due to worsening rheumatoid arthritis.
+187,Emergency CT scan was performed on the cervical spine due to suspected osteoarthritis.
+188,The patient presents with symptoms indicative of COPD. Treatment with Ibuprofen is recommended.
+189,Discharged with a prescription for Gabapentin and instructions to return if migraine symptoms persist.
+190,Patient denies any history of celiac disease but reports mild discomfort in the right shoulder.
+191,Patient is currently on Gabapentin for the management of osteoarthritis.
+192,Patient denies any history of type 2 diabetes but reports mild discomfort in the kidneys.
+193,Scheduled a follow-up echocardiogram to monitor the condition of the cervical spine.
+194,Patient is currently on Metformin for the management of major depressive disorder.
+195,A recent colonoscopy of the left eye confirmed the presence of anemia.
+196,No evidence of migraine was found during the last EEG.
+197,Emergency echocardiogram was performed on the left knee due to suspected gastric ulcer.
+198,The patient presents with symptoms indicative of atrial fibrillation. Treatment with Lisinopril is recommended.
+199,Patient is currently on Metformin for the management of psoriasis.
+200,Advised the patient to increase dosage of Lisinopril due to worsening hypothyroidism.
+201,No evidence of major depressive disorder was found during the last CT scan.
+202,No evidence of bronchial asthma was found during the last ultrasound.
+203,The patient presents with symptoms indicative of pneumonia. Treatment with Gabapentin is recommended.
+204,Patient is currently on Atorvastatin for the management of celiac disease.
+205,A recent ultrasound of the left eye confirmed the presence of bronchial asthma.
+206,A recent colonoscopy of the brain confirmed the presence of major depressive disorder.
+207,A recent X-ray of the right shoulder confirmed the presence of osteoarthritis.
+208,Emergency ECG was performed on the liver due to suspected gastric ulcer.
+209,Patient denies any history of hyperlipidemia but reports mild discomfort in the lumbar spine.
+210,Scheduled a follow-up colonoscopy to monitor the condition of the thyroid gland.
+211,Discharged with a prescription for Sertraline and instructions to return if chronic kidney disease symptoms persist.
+212,Advised the patient to increase dosage of Amoxicillin due to worsening migraine.
+213,No evidence of osteoarthritis was found during the last CT scan.
+214,Discharged with a prescription for Ibuprofen and instructions to return if osteoarthritis symptoms persist.
+215,No evidence of anemia was found during the last biopsy.
+216,The patient presents with symptoms indicative of celiac disease. Treatment with Ibuprofen is recommended.
+217,Patient denies any history of type 2 diabetes but reports mild discomfort in the left knee.
+218,Discharged with a prescription for Omeprazole and instructions to return if major depressive disorder symptoms persist.
+219,No evidence of hypothyroidism was found during the last MRI.
+220,Advised the patient to increase dosage of Lisinopril due to worsening atrial fibrillation.
+221,"The endoscopy revealed abnormalities in the lumbar spine, suggesting early-stage osteoarthritis."
+222,Discharged with a prescription for Omeprazole and instructions to return if gastric ulcer symptoms persist.
+223,"The EEG revealed abnormalities in the left eye, suggesting early-stage hypertension."
+224,Emergency colonoscopy was performed on the right lung due to suspected hyperlipidemia.
+225,A recent ECG of the brain confirmed the presence of anemia.
+226,Scheduled a follow-up CT scan to monitor the condition of the abdomen.
+227,Scheduled a follow-up X-ray to monitor the condition of the liver.
+228,No evidence of bronchial asthma was found during the last MRI.
+229,The patient presents with symptoms indicative of type 2 diabetes. Treatment with Amoxicillin is recommended.
+230,The patient presents with symptoms indicative of psoriasis. Treatment with Amlodipine is recommended.
+231,Scheduled a follow-up blood chemistry panel to monitor the condition of the right shoulder.
+232,"The colonoscopy revealed abnormalities in the cervical spine, suggesting early-stage gastric ulcer."
+233,Patient is currently on Gabapentin for the management of atrial fibrillation.
+234,Scheduled a follow-up CT scan to monitor the condition of the chest.
+235,Patient is currently on Omeprazole for the management of osteoarthritis.
+236,Patient denies any history of gastric ulcer but reports mild discomfort in the left eye.
+237,The patient presents with symptoms indicative of chronic kidney disease. Treatment with Albuterol is recommended.
+238,Patient denies any history of bronchial asthma but reports mild discomfort in the thyroid gland.
+239,A recent endoscopy of the chest confirmed the presence of anemia.
+240,Advised the patient to increase dosage of Aspirin due to worsening celiac disease.
+241,A recent MRI of the chest confirmed the presence of psoriasis.
+242,Patient is currently on Albuterol for the management of hyperlipidemia.
+243,"The colonoscopy revealed abnormalities in the left knee, suggesting early-stage migraine."
+244,No evidence of psoriasis was found during the last CT scan.
+245,The patient presents with symptoms indicative of hyperlipidemia. Treatment with Aspirin is recommended.
+246,No evidence of gastric ulcer was found during the last X-ray.
+247,A recent MRI of the left eye confirmed the presence of gastric ulcer.
+248,Discharged with a prescription for Omeprazole and instructions to return if chronic kidney disease symptoms persist.
+249,The patient presents with symptoms indicative of pneumonia. Treatment with Ibuprofen is recommended.
+250,Discharged with a prescription for Lisinopril and instructions to return if rheumatoid arthritis symptoms persist.
+251,Scheduled a follow-up EEG to monitor the condition of the chest.
+252,A recent biopsy of the left knee confirmed the presence of migraine.
+253,A recent EEG of the left knee confirmed the presence of COPD.
+254,Patient is currently on Amoxicillin for the management of major depressive disorder.
+255,Discharged with a prescription for Lisinopril and instructions to return if hypertension symptoms persist.
+256,"The echocardiogram revealed abnormalities in the lumbar spine, suggesting early-stage psoriasis."
+257,Patient denies any history of type 2 diabetes but reports mild discomfort in the liver.
+258,The patient presents with symptoms indicative of migraine. Treatment with Metformin is recommended.
+259,A recent CT scan of the right shoulder confirmed the presence of type 2 diabetes.
+260,No evidence of hypothyroidism was found during the last X-ray.
+261,The patient presents with symptoms indicative of migraine. Treatment with Amlodipine is recommended.
+262,A recent X-ray of the left knee confirmed the presence of osteoarthritis.
+263,Discharged with a prescription for Lisinopril and instructions to return if hypertension symptoms persist.
+264,"The X-ray revealed abnormalities in the liver, suggesting early-stage migraine."
+265,Emergency CT scan was performed on the cervical spine due to suspected celiac disease.
+266,Advised the patient to increase dosage of Sertraline due to worsening migraine.
+267,Discharged with a prescription for Sertraline and instructions to return if chronic kidney disease symptoms persist.
+268,Patient is currently on Losartan for the management of psoriasis.
+269,No evidence of psoriasis was found during the last spirometry.
+270,No evidence of chronic kidney disease was found during the last colonoscopy.
+271,Patient is currently on Losartan for the management of chronic kidney disease.
+272,Discharged with a prescription for Pantoprazole and instructions to return if rheumatoid arthritis symptoms persist.
+273,Emergency spirometry was performed on the left knee due to suspected chronic kidney disease.
+274,"The spirometry revealed abnormalities in the right shoulder, suggesting early-stage migraine."
+275,"The biopsy revealed abnormalities in the right shoulder, suggesting early-stage hypothyroidism."
+276,A recent MRI of the right lung confirmed the presence of bronchial asthma.
+277,The patient presents with symptoms indicative of major depressive disorder. Treatment with Omeprazole is recommended.
+278,Discharged with a prescription for Omeprazole and instructions to return if hypothyroidism symptoms persist.
+279,Emergency blood chemistry panel was performed on the chest due to suspected bronchial asthma.
+280,Patient denies any history of rheumatoid arthritis but reports mild discomfort in the brain.
+281,Emergency MRI was performed on the kidneys due to suspected migraine.
+282,No evidence of COPD was found during the last echocardiogram.
+283,Advised the patient to increase dosage of Gabapentin due to worsening gastric ulcer.
+284,Patient denies any history of rheumatoid arthritis but reports mild discomfort in the right lung.
+285,Patient is currently on Ibuprofen for the management of atrial fibrillation.
+286,Discharged with a prescription for Levothyroxine and instructions to return if chronic kidney disease symptoms persist.
+287,No evidence of bronchial asthma was found during the last ultrasound.
+288,Advised the patient to increase dosage of Metformin due to worsening pneumonia.
+289,Advised the patient to increase dosage of Amoxicillin due to worsening type 2 diabetes.
+290,Patient is currently on Amlodipine for the management of hypothyroidism.
+291,Advised the patient to increase dosage of Albuterol due to worsening hypertension.
+292,Advised the patient to increase dosage of Amlodipine due to worsening atrial fibrillation.
+293,Discharged with a prescription for Atorvastatin and instructions to return if pneumonia symptoms persist.
+294,Emergency EEG was performed on the chest due to suspected hypertension.
+295,A recent echocardiogram of the brain confirmed the presence of hypertension.
+296,Discharged with a prescription for Losartan and instructions to return if hypothyroidism symptoms persist.
+297,Scheduled a follow-up X-ray to monitor the condition of the chest.
+298,No evidence of major depressive disorder was found during the last ultrasound.
+299,A recent X-ray of the left knee confirmed the presence of migraine.
+300,A recent ECG of the left knee confirmed the presence of gastric ulcer.
+301,Patient is currently on Amlodipine for the management of major depressive disorder.
+302,Patient is currently on Aspirin for the management of osteoarthritis.
+303,No evidence of hyperlipidemia was found during the last echocardiogram.
+304,Discharged with a prescription for Amlodipine and instructions to return if bronchial asthma symptoms persist.
+305,"The EEG revealed abnormalities in the left eye, suggesting early-stage bronchial asthma."
+306,Patient is currently on Levothyroxine for the management of rheumatoid arthritis.
+307,Discharged with a prescription for Sertraline and instructions to return if hyperlipidemia symptoms persist.
+308,A recent EEG of the abdomen confirmed the presence of celiac disease.
+309,Discharged with a prescription for Gabapentin and instructions to return if type 2 diabetes symptoms persist.
+310,The patient presents with symptoms indicative of major depressive disorder. Treatment with Lisinopril is recommended.
+311,Advised the patient to increase dosage of Sertraline due to worsening hypertension.
+312,Patient denies any history of migraine but reports mild discomfort in the right lung.
+313,Emergency ultrasound was performed on the pelvis due to suspected chronic kidney disease.
+314,Patient denies any history of pneumonia but reports mild discomfort in the pelvis.
+315,Advised the patient to increase dosage of Citalopram due to worsening gastric ulcer.
+316,Discharged with a prescription for Atorvastatin and instructions to return if rheumatoid arthritis symptoms persist.
+317,Scheduled a follow-up spirometry to monitor the condition of the lumbar spine.
+318,A recent MRI of the left knee confirmed the presence of gastric ulcer.
+319,Patient denies any history of type 2 diabetes but reports mild discomfort in the left eye.
+320,No evidence of bronchial asthma was found during the last EEG.
+321,"The blood chemistry panel revealed abnormalities in the cervical spine, suggesting early-stage hyperlipidemia."
+322,Scheduled a follow-up ECG to monitor the condition of the liver.
+323,Advised the patient to increase dosage of Pantoprazole due to worsening bronchial asthma.
+324,"The spirometry revealed abnormalities in the cervical spine, suggesting early-stage COPD."
+325,Emergency MRI was performed on the kidneys due to suspected hypertension.
+326,The patient presents with symptoms indicative of hyperlipidemia. Treatment with Metformin is recommended.
+327,Discharged with a prescription for Amoxicillin and instructions to return if psoriasis symptoms persist.
+328,The patient presents with symptoms indicative of osteoarthritis. Treatment with Albuterol is recommended.
+329,Discharged with a prescription for Pantoprazole and instructions to return if celiac disease symptoms persist.
+330,A recent endoscopy of the left eye confirmed the presence of chronic kidney disease.
+331,Scheduled a follow-up spirometry to monitor the condition of the cervical spine.
+332,Emergency echocardiogram was performed on the brain due to suspected osteoarthritis.
+333,Patient is currently on Pantoprazole for the management of major depressive disorder.
+334,"The blood chemistry panel revealed abnormalities in the liver, suggesting early-stage major depressive disorder."
+335,Advised the patient to increase dosage of Albuterol due to worsening major depressive disorder.
+336,"The spirometry revealed abnormalities in the pelvis, suggesting early-stage migraine."
+337,Discharged with a prescription for Ibuprofen and instructions to return if anemia symptoms persist.
+338,Scheduled a follow-up blood chemistry panel to monitor the condition of the pelvis.
+339,The patient presents with symptoms indicative of celiac disease. Treatment with Metformin is recommended.
+340,Discharged with a prescription for Lisinopril and instructions to return if major depressive disorder symptoms persist.
+341,Patient denies any history of psoriasis but reports mild discomfort in the lumbar spine.
+342,"The ultrasound revealed abnormalities in the kidneys, suggesting early-stage COPD."
+343,A recent endoscopy of the pelvis confirmed the presence of pneumonia.
+344,Emergency MRI was performed on the thyroid gland due to suspected hypertension.
+345,Patient is currently on Amlodipine for the management of psoriasis.
+346,Discharged with a prescription for Atorvastatin and instructions to return if pneumonia symptoms persist.
+347,Emergency EEG was performed on the brain due to suspected psoriasis.
+348,Patient is currently on Ibuprofen for the management of migraine.
+349,The patient presents with symptoms indicative of rheumatoid arthritis. Treatment with Amoxicillin is recommended.
+350,Patient is currently on Lisinopril for the management of hypertension.
+351,Patient is currently on Gabapentin for the management of bronchial asthma.
+352,The patient presents with symptoms indicative of anemia. Treatment with Aspirin is recommended.
+353,Scheduled a follow-up echocardiogram to monitor the condition of the brain.
+354,Emergency CT scan was performed on the brain due to suspected pneumonia.
+355,Advised the patient to increase dosage of Ibuprofen due to worsening anemia.
+356,A recent endoscopy of the cervical spine confirmed the presence of type 2 diabetes.
+357,Emergency echocardiogram was performed on the cervical spine due to suspected chronic kidney disease.
+358,No evidence of migraine was found during the last ECG.
+359,A recent biopsy of the thyroid gland confirmed the presence of bronchial asthma.
+360,Patient is currently on Ibuprofen for the management of psoriasis.
+361,Patient is currently on Omeprazole for the management of osteoarthritis.
+362,Advised the patient to increase dosage of Lisinopril due to worsening chronic kidney disease.
+363,Emergency spirometry was performed on the pelvis due to suspected migraine.
+364,Advised the patient to increase dosage of Gabapentin due to worsening hypothyroidism.
+365,Patient denies any history of major depressive disorder but reports mild discomfort in the brain.
+366,Patient is currently on Ibuprofen for the management of hyperlipidemia.
+367,Discharged with a prescription for Aspirin and instructions to return if migraine symptoms persist.
+368,No evidence of atrial fibrillation was found during the last colonoscopy.
+369,Scheduled a follow-up echocardiogram to monitor the condition of the pelvis.
+370,Scheduled a follow-up X-ray to monitor the condition of the left knee.
+371,No evidence of chronic kidney disease was found during the last endoscopy.
+372,Discharged with a prescription for Amlodipine and instructions to return if hypothyroidism symptoms persist.
+373,Discharged with a prescription for Losartan and instructions to return if anemia symptoms persist.
+374,Emergency colonoscopy was performed on the brain due to suspected celiac disease.
+375,Discharged with a prescription for Sertraline and instructions to return if hypertension symptoms persist.
+376,Patient is currently on Lisinopril for the management of anemia.
+377,Patient is currently on Losartan for the management of chronic kidney disease.
+378,Patient denies any history of bronchial asthma but reports mild discomfort in the left knee.
+379,"The EEG revealed abnormalities in the chest, suggesting early-stage rheumatoid arthritis."
+380,Scheduled a follow-up ECG to monitor the condition of the right shoulder.
+381,Scheduled a follow-up echocardiogram to monitor the condition of the kidneys.
+382,"The CT scan revealed abnormalities in the lumbar spine, suggesting early-stage psoriasis."
+383,No evidence of type 2 diabetes was found during the last X-ray.
+384,"The spirometry revealed abnormalities in the cervical spine, suggesting early-stage anemia."
+385,A recent colonoscopy of the left eye confirmed the presence of pneumonia.
+386,The patient presents with symptoms indicative of migraine. Treatment with Sertraline is recommended.
+387,The patient presents with symptoms indicative of type 2 diabetes. Treatment with Pantoprazole is recommended.
+388,Discharged with a prescription for Metformin and instructions to return if psoriasis symptoms persist.
+389,No evidence of hyperlipidemia was found during the last MRI.
+390,Patient is currently on Amoxicillin for the management of atrial fibrillation.
+391,Scheduled a follow-up spirometry to monitor the condition of the abdomen.
+392,Advised the patient to increase dosage of Atorvastatin due to worsening type 2 diabetes.
+393,Advised the patient to increase dosage of Metformin due to worsening osteoarthritis.
+394,Emergency MRI was performed on the right lung due to suspected hypertension.
+395,Patient is currently on Lisinopril for the management of hypertension.
+396,Scheduled a follow-up biopsy to monitor the condition of the thyroid gland.
+397,Scheduled a follow-up endoscopy to monitor the condition of the chest.
+398,Patient is currently on Amoxicillin for the management of hypothyroidism.
+399,Scheduled a follow-up EEG to monitor the condition of the pelvis.
+400,The patient presents with symptoms indicative of bronchial asthma. Treatment with Gabapentin is recommended.
+401,"The colonoscopy revealed abnormalities in the left knee, suggesting early-stage hyperlipidemia."
+402,The patient presents with symptoms indicative of pneumonia. Treatment with Gabapentin is recommended.
+403,Scheduled a follow-up CT scan to monitor the condition of the right shoulder.
+404,Advised the patient to increase dosage of Aspirin due to worsening migraine.
+405,Scheduled a follow-up colonoscopy to monitor the condition of the chest.
+406,A recent echocardiogram of the kidneys confirmed the presence of rheumatoid arthritis.
+407,Patient is currently on Gabapentin for the management of osteoarthritis.
+408,Advised the patient to increase dosage of Pantoprazole due to worsening psoriasis.
+409,Patient denies any history of hypertension but reports mild discomfort in the left eye.
+410,No evidence of hypothyroidism was found during the last ultrasound.
+411,"The EEG revealed abnormalities in the right shoulder, suggesting early-stage gastric ulcer."
+412,Patient is currently on Losartan for the management of bronchial asthma.
+413,No evidence of COPD was found during the last MRI.
+414,A recent EEG of the left knee confirmed the presence of bronchial asthma.
+415,Advised the patient to increase dosage of Lisinopril due to worsening bronchial asthma.
+416,A recent ECG of the right lung confirmed the presence of major depressive disorder.
+417,No evidence of hypertension was found during the last ultrasound.
+418,A recent echocardiogram of the lumbar spine confirmed the presence of psoriasis.
+419,No evidence of gastric ulcer was found during the last MRI.
+420,"The MRI revealed abnormalities in the right lung, suggesting early-stage gastric ulcer."
+421,Advised the patient to increase dosage of Losartan due to worsening migraine.
+422,A recent echocardiogram of the pelvis confirmed the presence of chronic kidney disease.
+423,Discharged with a prescription for Omeprazole and instructions to return if anemia symptoms persist.
+424,Patient is currently on Losartan for the management of bronchial asthma.
+425,Discharged with a prescription for Citalopram and instructions to return if anemia symptoms persist.
+426,Discharged with a prescription for Albuterol and instructions to return if hypertension symptoms persist.
+427,No evidence of bronchial asthma was found during the last blood chemistry panel.
+428,Emergency biopsy was performed on the right lung due to suspected COPD.
+429,Scheduled a follow-up CT scan to monitor the condition of the brain.
+430,Patient denies any history of atrial fibrillation but reports mild discomfort in the abdomen.
+431,Patient is currently on Citalopram for the management of atrial fibrillation.
+432,Patient denies any history of psoriasis but reports mild discomfort in the pelvis.
+433,A recent colonoscopy of the thyroid gland confirmed the presence of atrial fibrillation.
+434,Emergency EEG was performed on the left knee due to suspected bronchial asthma.
+435,"The blood chemistry panel revealed abnormalities in the pelvis, suggesting early-stage psoriasis."
+436,Scheduled a follow-up ultrasound to monitor the condition of the brain.
+437,Advised the patient to increase dosage of Pantoprazole due to worsening gastric ulcer.
+438,Advised the patient to increase dosage of Sertraline due to worsening gastric ulcer.
+439,Patient denies any history of type 2 diabetes but reports mild discomfort in the left eye.
+440,Emergency colonoscopy was performed on the right shoulder due to suspected rheumatoid arthritis.
+441,Discharged with a prescription for Atorvastatin and instructions to return if hyperlipidemia symptoms persist.
+442,Patient is currently on Amoxicillin for the management of rheumatoid arthritis.
+443,No evidence of osteoarthritis was found during the last spirometry.
+444,Discharged with a prescription for Gabapentin and instructions to return if major depressive disorder symptoms persist.
+445,Scheduled a follow-up X-ray to monitor the condition of the cervical spine.
+446,"The CT scan revealed abnormalities in the brain, suggesting early-stage rheumatoid arthritis."
+447,Scheduled a follow-up X-ray to monitor the condition of the kidneys.
+448,"The endoscopy revealed abnormalities in the right lung, suggesting early-stage anemia."
+449,The patient presents with symptoms indicative of type 2 diabetes. Treatment with Levothyroxine is recommended.
+450,Scheduled a follow-up spirometry to monitor the condition of the liver.
+451,The patient presents with symptoms indicative of chronic kidney disease. Treatment with Pantoprazole is recommended.
+452,Advised the patient to increase dosage of Levothyroxine due to worsening COPD.
+453,Patient denies any history of anemia but reports mild discomfort in the thyroid gland.
+454,Emergency X-ray was performed on the right shoulder due to suspected type 2 diabetes.
+455,A recent MRI of the right lung confirmed the presence of celiac disease.
+456,Emergency CT scan was performed on the lumbar spine due to suspected psoriasis.
+457,No evidence of COPD was found during the last echocardiogram.
+458,No evidence of celiac disease was found during the last colonoscopy.
+459,Discharged with a prescription for Amoxicillin and instructions to return if hypothyroidism symptoms persist.
+460,"The X-ray revealed abnormalities in the thyroid gland, suggesting early-stage rheumatoid arthritis."
+461,"The ultrasound revealed abnormalities in the cervical spine, suggesting early-stage celiac disease."
+462,Scheduled a follow-up biopsy to monitor the condition of the left eye.
+463,Patient denies any history of atrial fibrillation but reports mild discomfort in the left eye.
+464,Patient denies any history of rheumatoid arthritis but reports mild discomfort in the left eye.
+465,Patient is currently on Omeprazole for the management of hypertension.
+466,The patient presents with symptoms indicative of hypertension. Treatment with Metformin is recommended.
+467,No evidence of bronchial asthma was found during the last MRI.
+468,Patient denies any history of COPD but reports mild discomfort in the kidneys.
+469,Scheduled a follow-up colonoscopy to monitor the condition of the liver.
+470,No evidence of psoriasis was found during the last ECG.
+471,Emergency EEG was performed on the liver due to suspected hypertension.
+472,Patient denies any history of gastric ulcer but reports mild discomfort in the right lung.
+473,No evidence of chronic kidney disease was found during the last MRI.
+474,The patient presents with symptoms indicative of bronchial asthma. Treatment with Aspirin is recommended.
+475,Patient is currently on Ibuprofen for the management of hypertension.
+476,Patient is currently on Metformin for the management of chronic kidney disease.
+477,No evidence of COPD was found during the last endoscopy.
+478,No evidence of psoriasis was found during the last CT scan.
+479,The patient presents with symptoms indicative of migraine. Treatment with Albuterol is recommended.
+480,Advised the patient to increase dosage of Ibuprofen due to worsening COPD.
+481,Discharged with a prescription for Amoxicillin and instructions to return if rheumatoid arthritis symptoms persist.
+482,Patient denies any history of pneumonia but reports mild discomfort in the abdomen.
+483,A recent colonoscopy of the right shoulder confirmed the presence of atrial fibrillation.
+484,Advised the patient to increase dosage of Albuterol due to worsening bronchial asthma.
+485,Scheduled a follow-up colonoscopy to monitor the condition of the chest.
+486,The patient presents with symptoms indicative of pneumonia. Treatment with Losartan is recommended.
+487,A recent CT scan of the cervical spine confirmed the presence of hyperlipidemia.
+488,Advised the patient to increase dosage of Amoxicillin due to worsening pneumonia.
+489,The patient presents with symptoms indicative of hypertension. Treatment with Aspirin is recommended.
+490,Patient denies any history of major depressive disorder but reports mild discomfort in the abdomen.
+491,"The ECG revealed abnormalities in the left eye, suggesting early-stage osteoarthritis."
+492,A recent echocardiogram of the abdomen confirmed the presence of type 2 diabetes.
+493,Emergency ECG was performed on the abdomen due to suspected migraine.
+494,Scheduled a follow-up endoscopy to monitor the condition of the kidneys.
+495,Patient denies any history of chronic kidney disease but reports mild discomfort in the liver.
+496,Patient denies any history of celiac disease but reports mild discomfort in the right lung.
+497,"The EEG revealed abnormalities in the right lung, suggesting early-stage rheumatoid arthritis."
+498,Advised the patient to increase dosage of Albuterol due to worsening celiac disease.
+499,Scheduled a follow-up X-ray to monitor the condition of the left knee.
+500,The patient presents with symptoms indicative of gastric ulcer. Treatment with Losartan is recommended.

@@ -8,7 +8,7 @@ from spacy.language import Language
 from sklearn.model_selection import train_test_split #type: ignore
 import pandas as pd
 
-from pipeline_exam.src.utils import configure_logging, load_dotenv_file, patterns
+from pipeline_exam.src.utils import configure_logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def build_step01_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     )
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     raw_dir = default_repo_root / "pipeline_exam" / "data" / "raw"
-    parser.add_argument("--dataset-path", default=str(raw_dir / "perizie_mediche_sintetiche.csv"))
+    parser.add_argument("--dataset-path", default=str(raw_dir / "medical_reports_english_translated.csv"))
     parser.add_argument("--output-dir", default=str(processed_dir))
     parser.add_argument("--train-output", default=str(processed_dir / "perizie_bio_train.tsv"))
     parser.add_argument("--val-output", default=str(processed_dir / "perizie_bio_val.tsv"))
@@ -67,7 +67,7 @@ def build_step01_parser(default_repo_root: Path) -> argparse.ArgumentParser:
 
 def run_step01(args: argparse.Namespace) -> None:
     configure_logging(args.logging_level)
-    load_dotenv_file(".env")
+    
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     dataset_path = Path(args.dataset_path)
@@ -76,32 +76,30 @@ def run_step01(args: argparse.Namespace) -> None:
     test_output = Path(args.test_output)
     seed = args.seed_split
 
-    nlp = spacy.blank("en")
-    ruler = nlp.add_pipe("entity_ruler")
+    LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BC5CDR)...")
+    nlp = spacy.load("en_ner_bc5cdr_md")
 
-    ruler.add_patterns(patterns)
+    LOGGER.info("Lettura del dataset grezzo...")
     df = pd.read_csv(dataset_path)
 
     LOGGER.info("Splitting del dataset (80% Train, 10% Val, 10% Test)...")
     df_train, df_temp = train_test_split(df, test_size=0.2, random_state=seed)
     df_val, df_test = train_test_split(df_temp, test_size=0.5, random_state=seed)
 
-    LOGGER.info("Tokenizzazione e BIO tagging sul Train set...")
+    LOGGER.info("Estrazione automatica delle entità (DISEASE, CHEMICAL) e BIO tagging...")
     df_train_tokens = initialize_ner_dataset(nlp, df_train)
     df_train_tokens.to_csv(train_output, sep='\t', index=False)
 
-    LOGGER.info("Tokenizzazione e BIO tagging sul Validation set...")
     df_val_tokens = initialize_ner_dataset(nlp, df_val)
     df_val_tokens.to_csv(val_output, sep='\t', index=False)
 
-    LOGGER.info("Tokenizzazione e BIO tagging sul Test set...")
     df_test_tokens = initialize_ner_dataset(nlp, df_test)
     df_test_tokens.to_csv(test_output, sep='\t', index=False)
 
     LOGGER.info(
-        "%s",
+        "\n%s",
         format_pipeline_step01_summary(
-            dataset_path = str(dataset_path),
+            dataset_path=str(dataset_path),
             train_path=str(train_output),
             val_path=str(val_output),
             test_path=str(test_output),

@@ -1,0 +1,13 @@
+12:19:48 | INFO    | Caricamento del modello medico pre-addestrato (ScispaCy BC5CDR)...
+/home/nico/.cache/pypoetry/virtualenvs/nlp-exam-mqpP9V8l-py3.12/lib/python3.12/site-packages/spacy/language.py:2195: FutureWarning: Possible set union at position 6328
+  deserializers["tokenizer"] = lambda p: self.tokenizer.from_disk(  # type: ignore[union-attr]
+12:19:56 | INFO    | Lettura del dataset grezzo...
+12:19:56 | INFO    | Splitting del dataset (80% Train, 10% Val, 10% Test)...
+12:19:56 | INFO    | Estrazione automatica delle entità (DISEASE, CHEMICAL) e BIO tagging...
+12:19:58 | INFO    | 
+Pipeline Step01 summary (Data Split & Tokenization):
+- Original Dataset: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/raw/medical_reports_english_translated.csv
+- Train TSV Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/perizie_bio_train.tsv (400 referti)
+- Validation TSV Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/perizie_bio_val.tsv (50 referti)
+- Test TSV Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/perizie_bio_test.tsv (50 referti)
+- Output Directory: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed

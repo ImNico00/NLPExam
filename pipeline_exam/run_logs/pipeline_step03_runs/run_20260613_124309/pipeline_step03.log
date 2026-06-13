@@ -1,0 +1,49 @@
+12:43:14 | INFO    | 🚀 Avvio training sul dispositivo: CUDA
+12:43:17 | INFO    | Inizializzazione della rete BIOBERT_NER...
+Some weights of BertForTokenClassification were not initialized from the model checkpoint at emilyalsentzer/Bio_ClinicalBERT and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+12:43:39 | INFO    | Inizio Addestramento per 25 epoche...
+12:43:40 | INFO    | Epoca [01/25] - Train Loss: 0.7048 | Val Loss: 0.4418
+12:43:40 | INFO    | ✨ Validation Loss migliorata (inf -> 0.4418). Salvataggio modello in corso...
+12:43:42 | INFO    | Epoca [02/25] - Train Loss: 0.1589 | Val Loss: 0.2703
+12:43:42 | INFO    | ✨ Validation Loss migliorata (0.4418 -> 0.2703). Salvataggio modello in corso...
+12:43:43 | INFO    | Epoca [03/25] - Train Loss: 0.0669 | Val Loss: 0.2271
+12:43:43 | INFO    | ✨ Validation Loss migliorata (0.2703 -> 0.2271). Salvataggio modello in corso...
+12:43:44 | INFO    | Epoca [04/25] - Train Loss: 0.0340 | Val Loss: 0.2209
+12:43:44 | INFO    | ✨ Validation Loss migliorata (0.2271 -> 0.2209). Salvataggio modello in corso...
+12:43:46 | INFO    | Epoca [05/25] - Train Loss: 0.0176 | Val Loss: 0.2262
+12:43:48 | INFO    | Epoca [06/25] - Train Loss: 0.0115 | Val Loss: 0.2561
+12:43:49 | INFO    | Epoca [07/25] - Train Loss: 0.0092 | Val Loss: 0.2676
+12:43:51 | INFO    | Epoca [08/25] - Train Loss: 0.0085 | Val Loss: 0.2877
+12:43:52 | INFO    | Epoca [09/25] - Train Loss: 0.0049 | Val Loss: 0.3051
+12:43:53 | INFO    | Epoca [10/25] - Train Loss: 0.0065 | Val Loss: 0.3267
+12:43:55 | INFO    | Epoca [11/25] - Train Loss: 0.0044 | Val Loss: 0.2936
+12:43:56 | INFO    | Epoca [12/25] - Train Loss: 0.0024 | Val Loss: 0.3115
+12:43:57 | INFO    | Epoca [13/25] - Train Loss: 0.0015 | Val Loss: 0.3264
+12:43:58 | INFO    | Epoca [14/25] - Train Loss: 0.0011 | Val Loss: 0.3323
+12:44:00 | INFO    | Epoca [15/25] - Train Loss: 0.0011 | Val Loss: 0.3404
+12:44:01 | INFO    | Epoca [16/25] - Train Loss: 0.0010 | Val Loss: 0.3410
+12:44:02 | INFO    | Epoca [17/25] - Train Loss: 0.0015 | Val Loss: 0.4082
+12:44:03 | INFO    | Epoca [18/25] - Train Loss: 0.0011 | Val Loss: 0.3519
+12:44:05 | INFO    | Epoca [19/25] - Train Loss: 0.0008 | Val Loss: 0.3566
+12:44:06 | INFO    | Epoca [20/25] - Train Loss: 0.0007 | Val Loss: 0.3654
+12:44:07 | INFO    | Epoca [21/25] - Train Loss: 0.0008 | Val Loss: 0.4021
+12:44:09 | INFO    | Epoca [22/25] - Train Loss: 0.0007 | Val Loss: 0.4449
+12:44:10 | INFO    | Epoca [23/25] - Train Loss: 0.0006 | Val Loss: 0.4227
+12:44:11 | INFO    | Epoca [24/25] - Train Loss: 0.0005 | Val Loss: 0.4129
+12:44:12 | INFO    | Epoca [25/25] - Train Loss: 0.0005 | Val Loss: 0.4126
+12:44:21 | INFO    | Modello finale salvato su /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/models/biobert_ner_model.pth (Basato sulla migliore Val Loss: 0.2209)
+12:44:21 | INFO    | 
+Pipeline Step03 summary:
+- Model ID: biobert_ner
+- HuggingFace API Key Setted: YES
+- Train Dataset Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/perizie_bio_train.tsv
+- Val Dataset Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/perizie_bio_val.tsv
+- Vocabulary Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/data/processed/vocab.pkl
+- Output Model Path: /mnt/g/File/File_Casuali/uni/magistrale/secondo_anno/NLP/NLPExam/pipeline_exam/models/biobert_ner_model.pth
+- Epochs: 25
+- Batch Size: 16
+- Learning Rate: 2e-05
+- Device: CUDA
+- Final Train Loss: 0.0005
+- Best Validation Loss: 0.2209

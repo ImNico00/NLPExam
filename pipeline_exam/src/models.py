@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import AutoModelForTokenClassification, AutoConfig
+from pipeline_exam.src.schemas import CANONICAL_MODELS
 
 def get_model(model_id: str, vocab_size: int, num_classes: int, hf_token : str | None, **kwargs) -> nn.Module:
     """
@@ -15,10 +16,15 @@ def get_model(model_id: str, vocab_size: int, num_classes: int, hf_token : str |
             embedding_dim=kwargs.get("embedding_dim", 128),
             hidden_dim=kwargs.get("hidden_dim", 256)
         )
-        
     elif model_id == "bert_ner":
         return TransformerNER(
-            model_name="dbmdz/bert-base-italian-cased", 
+            model_name=CANONICAL_MODELS["bert"], 
+            num_classes=num_classes,
+            hf_token=hf_token
+        )
+    elif model_id == "biobert_ner":
+        return TransformerNER(
+            model_name=CANONICAL_MODELS["biobert"], 
             num_classes=num_classes,
             hf_token=hf_token
         )
@@ -27,7 +33,7 @@ def get_model(model_id: str, vocab_size: int, num_classes: int, hf_token : str |
         raise NotImplementedError("Baseline non implementata.")
         
     else:
-        raise ValueError(f"Errore: model_id '{model_id}' non riconosciuto. Scegli tra: ['bilstm', 'bert_ner']")
+        raise ValueError(f"Errore: model_id '{model_id}' non riconosciuto. Scegli tra: ['bilstm', 'bert_ner', 'biobert_ner']")
 
 class BiLSTM_NER(nn.Module):
     def __init__(

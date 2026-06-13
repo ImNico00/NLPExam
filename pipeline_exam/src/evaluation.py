@@ -19,6 +19,7 @@ import seaborn as sns
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file
 from pipeline_exam.src.models import get_model
 from pipeline_exam.src.NERDataset import NERDataset, TransformerNERDataset, pad_collate, transformer_collate
+from pipeline_exam.src.schemas import CANONICAL_MODELS
 
 LOGGER = logging.getLogger(__name__)
 
@@ -129,19 +130,22 @@ def run_step04(args: argparse.Namespace) -> None:
         model_id = model_path.name.replace("_model.pth", "")
         LOGGER.info(f"\n{'='*50}\nValutazione Modello: {model_id.upper()}\n{'='*50}")
         
-        if model_id == "bert_ner":
-            dataset = TransformerNERDataset(
-                file_path=tokenized_dataset_path, 
-                model_name="dbmdz/bert-base-italian-cased",
-                hf_token=huggingface_api_key,
-                vocab=vocab
-            )
-            dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=transformer_collate)
-        else:
-            dataset = NERDataset(tokenized_dataset_path, vocab=vocab)
-            dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=pad_collate)
+
+        match(model_id):
+            case "bert_ner" | "biobert_ner":
+                canonical_model = CANONICAL_MODELS["bert"] if model_id == "bert_ner" else CANONICAL_MODELS["biobert"]
+                
+                dataset = TransformerNERDataset(
+                    file_path=tokenized_dataset_path, 
+                    model_name=canonical_model,
+                    hf_token=huggingface_api_key,
+                    vocab=vocab
+                )
+                dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=transformer_collate)
+            case _:
+                dataset = NERDataset(tokenized_dataset_path, vocab=vocab)
+                dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=pad_collate)
             
-        # B. Inizializzazione Modello tramite Factory
         model = get_model(
             model_id=model_id,
             vocab_size=len(vocab.word2idx),
@@ -150,14 +154,8 @@ def run_step04(args: argparse.Namespace) -> None:
             hidden_dim=args.hidden_dim,
             hf_token=huggingface_api_key
         ).to(dev)
-        
-        # C. Caricamento dei Pesi
         model.load_state_dict(torch.load(model_path, map_location=dev))
-        
-        # D. Inferenza
         labels_tags, preds_tags = evaluate_model(model, dataloader, dev, vocab)
-        
-        # E. Metriche e Report
         labels = list(set(labels_tags))
         if "O" in labels: 
             labels.remove("O") # Togliamo "O" per calcolare la F1 vera sulle entità
@@ -174,7 +172,7 @@ def run_step04(args: argparse.Namespace) -> None:
         
         LOGGER.info(f"Classification Report ({model_id.upper()}):\n{report_str}")
         
-        # F. Creazione e Salvataggio Confusion Matrix
+        
         cm = confusion_matrix(labels_tags, preds_tags, labels=labels)
         plt.figure(figsize=(10, 8))
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
@@ -184,9 +182,8 @@ def run_step04(args: argparse.Namespace) -> None:
         
         cm_path = plots_dir / f"{model_id}_confusion_matrix.png"
         plt.savefig(cm_path)
-        plt.close() # Fondamentale chiudere il plot in un ciclo for per non sovrapporli!
+        plt.close()
         
-        # G. Log del Summary per questo modello
         LOGGER.info(
             "\n%s",
             format_pipeline_step04_summary(
@@ -197,5 +194,3 @@ def run_step04(args: argparse.Namespace) -> None:
                 accuracy=accuracy
             )
         )
-        
-    LOGGER.info("\n✅ Evaluation Loop Completato per tutti i modelli!")
