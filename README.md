@@ -39,15 +39,15 @@ La pipeline è divisa in step logici pensati per essere eseguiti tramite riga di
 ### 1. Preparazione Dati e Annotazione (Step 00, 01, 02)
 Esegui in sequenza i moduli per generare il dataset, annotarlo con tag BIO e costruire i vocabolari tensoriali:
 ```bash
-poetry run python pipeline_exam/src/step00_creation.py
-poetry run python pipeline_exam/src/step01_annotation.py
-poetry run python pipeline_exam/src/step02_build_vocab.py
+./script/run_step00_with_logs.sh
+./script/run_step01_with_logs.sh
+./script/run_step02_with_logs.sh
 ```
 
 ### 2. Addestramento Modelli (Step 03)
 Avvia il training loop. Esempio per addestrare il modello Bio_ClinicalBERT di default su CUDA:
 ```bash
-poetry run python pipeline_exam/src/step03_train.py --model-id biobert_ner
+./script/run_step03_with_logs.sh --model-id biobert_ner
 ```
 
 ### Configurazione Avanzata (CLI) per il Training
@@ -59,16 +59,14 @@ Il parser `argparse` permette di sovrascrivere gli iperparametri per sperimentar
 
 Esempio per una BiLSTM veloce su CPU:
 ```bash
-poetry run python pipeline_exam/src/step03_train.py --model-id bilstm --device cpu --epochs 10 --lr 0.001
+./script/run_step03_with_logs.shy --model-id bilstm --device cpu --epochs 10 --lr 0.001
 ```
 
 ## 🔄 Flusso di Valutazione (Step 04)
 Una volta addestrati i modelli, la valutazione processa automaticamente tutti i file `.pth` salvati nella cartella `models/`.
 
 ```bash
-poetry run python pipeline_exam/src/step04_evaluate.py
-# Oppure tramite lo script bash con logging:
-./run_step04_with_logs.sh
+./script/run_step04_with_logs.sh
 ```
 
 **Output generati:**

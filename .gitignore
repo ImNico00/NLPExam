@@ -1,3 +1,5 @@
 .env
 pipeline_exam/models/*
 pipeline_exam/run_logs/*
+.vscode
+poetry.lock
