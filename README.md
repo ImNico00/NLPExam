@@ -59,7 +59,7 @@ Il parser `argparse` permette di sovrascrivere gli iperparametri per sperimentar
 
 Esempio per una BiLSTM veloce su CPU:
 ```bash
-./script/run_step03_with_logs.shy --model-id bilstm --device cpu --epochs 10 --lr 0.001
+./script/run_step03_with_logs.sh --model-id bilstm --device cpu --epochs 10 --lr 0.001
 ```
 
 ## 🔄 Flusso di Valutazione (Step 04)
