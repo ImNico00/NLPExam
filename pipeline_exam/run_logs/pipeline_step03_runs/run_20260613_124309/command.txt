@@ -1,1 +1,0 @@
-poetry run python3 -m pipeline_exam.src.step03_train --model-id biobert_ner 

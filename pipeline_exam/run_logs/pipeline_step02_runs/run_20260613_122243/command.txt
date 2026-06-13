@@ -1,1 +1,0 @@
-poetry run python3 -m pipeline_exam.src.step02_build_vocab 
