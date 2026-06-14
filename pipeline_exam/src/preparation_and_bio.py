@@ -61,6 +61,8 @@ def build_step01_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     raw_dir = default_repo_root / "pipeline_exam" / "data" / "raw"
     parser.add_argument("--dataset-path", default=str(raw_dir / "medical_reports_english_translated.csv"))
+    parser.add_argument("--gt-model", type=str, default="scispicy-bc5cdr", choices=["scispicy-bc5cdr", "dictionary", "scibert"],
+                        help="Modello per generare la ground truth")
     parser.add_argument("--output-dir", default=str(processed_dir))
     parser.add_argument("--train-output", default=str(processed_dir / "perizie_bio_train.tsv"))
     parser.add_argument("--val-output", default=str(processed_dir / "perizie_bio_val.tsv"))
@@ -78,10 +80,19 @@ def run_step01(args: argparse.Namespace) -> None:
     train_output = Path(args.train_output)
     val_output = Path(args.val_output)
     test_output = Path(args.test_output)
+    gt_model = args.gt_model
     seed = args.seed_split
 
-    LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BC5CDR)...")
-    nlp = spacy.load("en_ner_bc5cdr_md")
+    match gt_model:
+        case "dictionary":
+            LOGGER.info("Utilizzo di una Rule-Based con Dizionario...")
+            nlp = spacy.load("en_ner_bc5cdr_md")
+        case "scibert":
+            LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BERT)...")
+            nlp = spacy.load("en_core_sci_scibert")
+        case _:
+            LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BC5CDR)...")
+            nlp = spacy.load("en_ner_bc5cdr_md")
 
     LOGGER.info("Lettura del dataset grezzo...")
     df = pd.read_csv(dataset_path)
