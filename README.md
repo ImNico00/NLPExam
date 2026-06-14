@@ -5,7 +5,7 @@ Repository contenente l'implementazione di una pipeline end-to-end di Machine Le
 ## 🚀 Architettura del Sistema
 
 Il progetto non si limita al training di un singolo modello, ma implementa un'architettura modulare industriale (MLOps):
-- **Data Engineering & Annotation (Step 00 & 01):** Generazione procedurale di referti medici sintetici in lingua inglese. L'annotazione (Gold Standard) non è manuale, ma è effettuata tramite `scispacy` (`en_ner_bc5cdr_md`), sfruttando il pre-training su letteratura biomedica.
+- **Data Engineering & Annotation (Step 01 & 02):** Generazione procedurale di referti medici sintetici in lingua inglese. L'annotazione (Gold Standard) non è manuale, ma è effettuata tramite `scispacy` (`en_ner_bc5cdr_md`), sfruttando il pre-training su letteratura biomedica.
 - **Deep Learning Baseline (Step 03):** Rete **BiLSTM** sviluppata custom in PyTorch con embedding statici per stabilire una baseline di performance.
 - **Attention & Domain Adaptation (Step 03):** Fine-tuning di Transformer Hugging Face. Confronto tra un modello generico (`bert-base-cased`) e un modello di dominio clinico (`emilyalsentzer/Bio_ClinicalBERT` addestrato su MIMIC-III).
 - **Evaluation Engine (Step 04):** Modulo di validazione rigorosa che calcola lo *Strict Entity F1-Score* (escludendo programmaticamente l'over-rappresentazione della classe `O`) e genera Matrici di Confusione comparative.
@@ -36,10 +36,9 @@ Il progetto utilizza **Poetry** per la gestione rigorosa delle dipendenze, geste
 
 La pipeline è divisa in step logici pensati per essere eseguiti tramite riga di comando. 
 
-### 1. Preparazione Dati e Annotazione (Step 00, 01, 02)
+### 1. Preparazione Dati e Annotazione (Step 01, 02)
 Esegui in sequenza i moduli per generare il dataset, annotarlo con tag BIO e costruire i vocabolari tensoriali:
 ```bash
-./script/run_step00_with_logs.sh
 ./script/run_step01_with_logs.sh
 ./script/run_step02_with_logs.sh
 ```

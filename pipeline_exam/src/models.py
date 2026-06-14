@@ -100,8 +100,9 @@ class TransformerNER(nn.Module):
             token=self.hf_token
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Calcoliamo la maschera dinamicamente (0 è il padding di BERT)
-        attention_mask = (x != 0).long()
-        outputs = self.transformer(input_ids=x, attention_mask=attention_mask)
-        return outputs.logits
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor | None = None):
+        outputs = self.transformer(
+            input_ids=input_ids, 
+            attention_mask=attention_mask
+        )
+        return outputs

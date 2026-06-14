@@ -9,13 +9,30 @@ from torch.nn.utils.rnn import pad_sequence
 
 class Vocabulary:
     def __init__(self):
-        # [PAD] = 0 (Padding), [UNK] = 1 (Sconosciuto)
-        self.word2idx: Dict[str, int] = {"[PAD]": 0, "[UNK]": 1}
-        self.idx2word: Dict[int, str] = {0: "[PAD]", 1: "[UNK]"}
-        
-        # Per i tag, l'ID 0 è sempre il padding
-        self.tag2idx: Dict[str, int] = {"[PAD]": 0}
-        self.idx2tag: Dict[int, str] = {0: "[PAD]"}
+        self.pad_token = "[PAD]"
+        self.unk_token = "[UNK]"
+
+        self.pad_word_idx = 0
+        self.unk_word_idx = 1
+        self.pad_tag_idx = 0
+
+        self.word2idx: Dict[str, int] = {
+            self.pad_token: self.pad_word_idx,
+            self.unk_token: self.unk_word_idx,
+        }
+
+        self.idx2word: Dict[int, str] = {
+            self.pad_word_idx: self.pad_token,
+            self.unk_word_idx: self.unk_token,
+        }
+
+        self.tag2idx: Dict[str, int] = {
+            self.pad_token: self.pad_tag_idx,
+        }
+
+        self.idx2tag: Dict[int, str] = {
+            self.pad_tag_idx: self.pad_token,
+        }
         
     def build_vocab(self, df: pd.DataFrame):
         for token in df['Token'].dropna().unique():
@@ -24,7 +41,7 @@ class Vocabulary:
                 self.word2idx[token] = idx
                 self.idx2word[idx] = token
                 
-        for tag in df['BIO_Tag'].dropna().unique():
+        for tag in sorted(df["BIO_Tag"].dropna().unique()):
             if tag not in self.tag2idx:
                 idx = len(self.tag2idx)
                 self.tag2idx[tag] = idx
@@ -39,16 +56,17 @@ class NERDataset(Dataset):
         
         self.vocab = vocab if vocab else Vocabulary()
         if not vocab:
-            df = pd.read_csv(file_path, sep='\t', keep_default_na=False)
-            df = df[df['Token'] != '']
+            df = pd.read_csv(file_path, sep="\t", keep_default_na=False)
+            df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
             self.vocab.build_vocab(df)
 
     def load_tokenized_dataset(self, file_path: Path):
-        df = pd.read_csv(file_path, sep='\t')
-        df = df.dropna(subset=['Token', 'BIO_Tag'])
-        for _, group in df.groupby('Sentence_ID'):
-            tokens = group['Token'].tolist()
-            tags = group['BIO_Tag'].tolist()
+        df = pd.read_csv(file_path, sep="\t", keep_default_na=False)
+        df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
+
+        for _, group in df.groupby("Sentence_ID", sort=False):
+            tokens = group["Token"].tolist()
+            tags = group["BIO_Tag"].tolist()
             self.sentences.append(tokens)
             self.labels.append(tags)
 
@@ -78,12 +96,13 @@ class TransformerNERDataset(Dataset):
         if not vocab:
             self.vocab.build_vocab(df)
 
-    def load_tokenized_dataset(self, file_path: Path) -> pd.DataFrame:
-        df = pd.read_csv(file_path, sep='\t', keep_default_na=False)
-        df = df[df['Token'] != ''] 
-        for _, group in df.groupby('Sentence_ID'):
-            tokens = group['Token'].tolist()
-            tags = group['BIO_Tag'].tolist()
+    def load_tokenized_dataset(self, file_path: Path):
+        df = pd.read_csv(file_path, sep="\t", keep_default_na=False)
+        df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
+
+        for _, group in df.groupby("Sentence_ID", sort=False):
+            tokens = group["Token"].tolist()
+            tags = group["BIO_Tag"].tolist()
             self.sentences.append(tokens)
             self.labels.append(tags)
         return df
@@ -99,7 +118,8 @@ class TransformerNERDataset(Dataset):
             words,
             is_split_into_words=True,
             truncation=True,
-            max_length=256
+            max_length=256,
+            return_attention_mask=True
         )
         
         word_ids = encoding.word_ids()
@@ -122,25 +142,39 @@ class TransformerNERDataset(Dataset):
             previous_word_idx = word_idx
 
         # AGGIUNTA: Restituiamo anche i raw_tokens allineati
-        return torch.tensor(encoding["input_ids"], dtype=torch.long), torch.tensor(label_ids, dtype=torch.long), raw_tokens
+        return (
+            {
+                "input_ids": torch.tensor(encoding["input_ids"], dtype=torch.long),
+                "attention_mask": torch.tensor(encoding["attention_mask"], dtype=torch.long),
+            },
+            torch.tensor(label_ids, dtype=torch.long),
+            raw_tokens,
+        )
     
 
 def transformer_collate(batch):
-    input_ids = [item[0] for item in batch]
+    input_ids = [item[0]["input_ids"] for item in batch]
+    attention_masks = [item[0]["attention_mask"] for item in batch]
     labels = [item[1] for item in batch]
-    raw_sentences = [item[2] for item in batch] # Estraiamo le stringhe
-    
+    raw_sentences = [item[2] for item in batch]
+
     padded_input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
+    padded_attention_masks = pad_sequence(attention_masks, batch_first=True, padding_value=0)
     padded_labels = pad_sequence(labels, batch_first=True, padding_value=-100)
-    
-    # Appiattiamo le stringhe replicando esattamente la forma del tensore (padding)
+
     max_len = padded_input_ids.size(1)
     flat_raw_words = []
+
     for seq in raw_sentences:
         flat_raw_words.extend(seq)
         flat_raw_words.extend(["[PAD]"] * (max_len - len(seq)))
-        
-    return padded_input_ids, padded_labels, flat_raw_words
+
+    batch_x = {
+        "input_ids": padded_input_ids,
+        "attention_mask": padded_attention_masks,
+    }
+
+    return batch_x, padded_labels, flat_raw_words
 
 def pad_collate(batch):
     sentences = [item[0] for item in batch]

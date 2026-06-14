@@ -10,8 +10,7 @@ import csv
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torch import device
-import pandas as pd
+import numpy as np
 from typing import cast
 
 from sklearn.metrics import classification_report, confusion_matrix # type: ignore
@@ -25,36 +24,56 @@ from pipeline_exam.src.schemas import CANONICAL_MODELS
 
 LOGGER = logging.getLogger(__name__)
 
-def collect_errors(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab) -> list[dict]:
+def evaluate_and_collect_errors(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab : Vocabulary) -> tuple[list, list, list[dict]]:
+    """
+    Esegue l'inferenza sul test set una sola volta, restituendo:
+    - labels_tags: lista di tutti i tag veri (per classification_report)
+    - preds_tags: lista di tutti i tag predetti (per classification_report)
+    - errors: lista di dizionari contenenti il dettaglio degli errori
+    """
     model.eval()
+    
+    all_labels_tags = []
+    all_preds_tags = []
     errors = []
 
     with torch.no_grad():
-        # IL DATALOADER ORA RESTITUISCE 3 ELEMENTI
         for batch_x, batch_y, flat_raw_words in dataloader:
-            batch_x, batch_y = batch_x.to(dev), batch_y.to(dev)
-
-            logits = model(batch_x)
+            if isinstance(batch_x, dict):
+                batch_x = {k: v.to(dev) for k, v in batch_x.items()}
+                batch_y = batch_y.to(dev)
+                logits = model(**batch_x)
+            else:
+                batch_x = batch_x.to(dev)
+                batch_y = batch_y.to(dev)
+                logits = model(batch_x)
+                
+            if hasattr(logits, "logits"):
+                logits = logits.logits
             preds = torch.argmax(logits, dim=-1)
 
+            # 2. Flattening dei tensori
             preds_flat = preds.view(-1).cpu().numpy()
             labels_flat = batch_y.view(-1).cpu().numpy()
 
-            # Maschera per ignorare il padding (sia 0 che -100)
-            mask = (labels_flat != 0) & (labels_flat != -100)
+            # 3. Creazione della maschera per ignorare il padding
+            mask = (labels_flat != vocab.pad_tag_idx) & (labels_flat != -100)
 
-            # Estraiamo solo i valori validi
+            # 4. Filtraggio dei valori validi
             valid_labels = labels_flat[mask]
             valid_preds = preds_flat[mask]
-            
-            # Filtriamo anche le parole usando la stessa identica maschera!
-            import numpy as np
             valid_raw_words = np.array(flat_raw_words)[mask]
 
+            # 5. Mappatura ed estrazione simultanea
             for real_word, true_id, pred_id in zip(valid_raw_words, valid_labels, valid_preds):
                 true_tag = vocab.idx2tag[true_id]
                 pred_tag = vocab.idx2tag[pred_id]
 
+                # Raccogliamo TUTTI i tag per le metriche globali
+                all_labels_tags.append(true_tag)
+                all_preds_tags.append(pred_tag)
+
+                # Raccogliamo SOLO gli errori per il log
                 if true_tag != pred_tag:
                     errors.append({
                         "token": real_word,
@@ -63,40 +82,14 @@ def collect_errors(model: nn.Module, dataloader: DataLoader, dev: torch.device, 
                         "error_type": f"{true_tag} -> {pred_tag}"
                     })
 
-    return errors
-
-def evaluate_model(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab) -> tuple[list, list]:
-    model.eval()
-    all_preds = []
-    all_labels = []
-    
-    with torch.no_grad():
-        for batch_x, batch_y, _ in dataloader:
-            batch_x, batch_y = batch_x.to(dev), batch_y.to(dev)
-            
-            logits = model(batch_x)
-            preds = torch.argmax(logits, dim=-1)
-            
-            preds_flat = preds.view(-1).cpu().numpy()
-            labels_flat = batch_y.view(-1).cpu().numpy()
-            
-            # Ignoriamo il padding
-            mask = (labels_flat != 0) & (labels_flat != -100)
-            
-            all_preds.extend(preds_flat[mask])
-            all_labels.extend(labels_flat[mask])
-            
-    # Mappiamo i numeri ai tag stringa
-    preds_tags = [vocab.idx2tag[p] for p in all_preds]
-    labels_tags = [vocab.idx2tag[l] for l in all_labels]
-    
-    return labels_tags, preds_tags
+    return all_labels_tags, all_preds_tags, errors
 
 def format_pipeline_step04_summary(
     *,
     model_id: str,
     model_path: str,
-    confusion_matrix_path: str,
+    cm_full_path: str,
+    cm_entity_path: str,
     macro_f1: float,
     accuracy: float
 ) -> str:
@@ -104,7 +97,8 @@ def format_pipeline_step04_summary(
         f"Pipeline Step04 summary ({model_id.upper()}):\n"
         f"- Model ID: {model_id}\n"
         f"- Model Path: {model_path}\n"
-        f"- Confusion Matrix: {confusion_matrix_path}\n"
+        f"- Confusion Matrix Full: {cm_full_path}\n"
+        f"- Confusion Matrix Entity: {cm_entity_path}\n"
         f"- Overall Accuracy: {accuracy:.4f}\n"
         f"- Macro F1-Score (No 'O'): {macro_f1:.4f}"
     )
@@ -119,6 +113,7 @@ def build_step04_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     models_dir = default_repo_root / "pipeline_exam" / "models"
     evaluation_dir = default_repo_root / "pipeline_exam" / "evaluations"
     
+    parser.add_argument("--models-evaluation-summary-path", default=str(evaluation_dir / "models_evaluation_summary.csv"))
     parser.add_argument("--tokenized-dataset-path", default=str(processed_dir / "perizie_bio_test.tsv"))
     parser.add_argument("--vocab-path", default=str(processed_dir / "vocab.pkl"))
     parser.add_argument("--models-dir", default=str(models_dir), help="Cartella contenente i file .pth")
@@ -147,7 +142,6 @@ def run_step04(args: argparse.Namespace) -> None:
     if not huggingface_api_key:
         LOGGER.warning("HUGGINGFACE_API_KEY not set -- unauthenticated may fail.")
     
-    # 1. Caricamento del Vocabolario (serve per tutti i modelli)
     vocab_path = Path(args.vocab_path)
     if not vocab_path.exists():
         LOGGER.error(f"Vocabolario non trovato in {vocab_path}!")
@@ -160,15 +154,15 @@ def run_step04(args: argparse.Namespace) -> None:
     if not tokenized_dataset_path.exists():
         raise FileNotFoundError(f"Test dataset not found: {tokenized_dataset_path}")
 
-    # 2. Cerchiamo tutti i modelli salvati nella cartella
-    model_files = list(models_dir.glob("*_model.pth"))
+    model_files = sorted(models_dir.glob("*_model.pth"))
     if not model_files:
         LOGGER.warning(f"Nessun modello trovato in {models_dir}. Esegui prima lo Step 03.")
         return
         
     LOGGER.info(f"Trovati {len(model_files)} modelli da valutare. Inizio ciclo...")
 
-    # 3. LOOP SUI MODELLI
+    summary_rows = []
+    
     for model_path in model_files:
         # Estraiamo l'ID dinamico (es: "bilstm_model.pth" -> "bilstm")
         model_id = model_path.name.replace("_model.pth", "")
@@ -205,13 +199,27 @@ def run_step04(args: argparse.Namespace) -> None:
         else:
             model.load_state_dict(checkpoint)
 
-        labels_tags, preds_tags = evaluate_model(model, dataloader, dev, vocab)
-        labels = sorted(set(labels_tags))
-        if "O" in labels: 
-            labels.remove("O") # Togliamo "O" per calcolare la F1 vera sulle entità
+        labels_tags, preds_tags, errors = evaluate_and_collect_errors(model, dataloader, dev, vocab)
+
+        all_labels = sorted(set(labels_tags) | set(preds_tags))
+        entity_labels = [
+            label for label in all_labels
+            if label not in {"O", vocab.pad_token}
+        ]
             
-        report_str = classification_report(labels_tags, preds_tags, labels=labels, zero_division=0)
-        raw_report = classification_report(labels_tags, preds_tags, labels=labels, zero_division=0, output_dict=True)
+        report_str = classification_report(
+            labels_tags,
+            preds_tags,
+            labels=entity_labels,
+            zero_division=0,
+        )
+        raw_report = classification_report(
+            labels_tags, 
+            preds_tags, 
+            labels=entity_labels, 
+            zero_division=0, 
+            output_dict=True
+            )
         report_dict = cast(dict, raw_report)
         macro_f1 = report_dict['macro avg']['f1-score']
         
@@ -222,25 +230,43 @@ def run_step04(args: argparse.Namespace) -> None:
         
         LOGGER.info(f"Classification Report ({model_id.upper()}):\n{report_str}")
         
-        cm = confusion_matrix(labels_tags, preds_tags, labels=labels)
+        cm_full = confusion_matrix(labels_tags, preds_tags, labels=all_labels)
         plt.figure(figsize=(10, 8))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
-        plt.title(f'Confusion Matrix - {model_id.upper()}')
+        sns.heatmap(
+            cm_full,
+            annot=True,
+            fmt="d",
+            cmap="Blues",
+            xticklabels=all_labels,
+            yticklabels=all_labels,
+        )
+        plt.title(f"Full Confusion Matrix - {model_id.upper()}")
         plt.ylabel('True BIO Tag')
         plt.xlabel('Predicted BIO Tag')
         
-        cm_path = evaluation_dir / f"{model_id}_confusion_matrix.png"
-        plt.savefig(cm_path)
+        cm_full_path = evaluation_dir / f"{model_id}_confusion_matrix_full.png"
+        plt.savefig(cm_full_path, bbox_inches="tight")
         plt.close()
 
-        errors = collect_errors(
-            model=model, 
-            dataloader=dataloader, 
-            dev=dev, 
-            vocab=vocab
+        cm_entity = confusion_matrix(labels_tags, preds_tags, labels=entity_labels)
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(
+            cm_entity,
+            annot=True,
+            fmt="d",
+            cmap="Blues",
+            xticklabels=entity_labels,
+            yticklabels=entity_labels,
         )
-        output_path = evaluation_dir / f"{model_id}_error_analysis.csv"
+        plt.title(f"Entity Confusion Matrix - {model_id.upper()}")
+        plt.ylabel('True BIO Tag')
+        plt.xlabel('Predicted BIO Tag')
+        
+        cm_entity_path = evaluation_dir / f"{model_id}_confusion_matrix_entity.png"
+        plt.savefig(cm_entity_path, bbox_inches="tight")
+        plt.close()
 
+        output_path = evaluation_dir / f"{model_id}_error_analysis.csv"
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,
@@ -250,14 +276,46 @@ def run_step04(args: argparse.Namespace) -> None:
             writer.writerows(errors)
 
         LOGGER.info(f"Saved {len(errors)} errors to {output_path}")
+
+        summary_rows.append({
+            "model_id": model_id,
+            "accuracy": accuracy,
+            "macro_f1_no_o": macro_f1,
+            "num_errors": len(errors),
+            "model_path": str(model_path),
+            "confusion_matrix_full_path": str(cm_full_path),
+            "confusion_matrix_entity_path": str(cm_entity_path),
+            "error_analysis_path": str(output_path),
+        })
         
         LOGGER.info(
             "\n%s",
             format_pipeline_step04_summary(
                 model_id=model_id,
                 model_path=str(model_path),
-                confusion_matrix_path=str(cm_path),
+                cm_full_path=str(cm_full_path),
+                cm_entity_path=str(cm_entity_path),
                 macro_f1=macro_f1,
                 accuracy=accuracy
             )
         )
+
+    summary_path = args.models_evaluation_summary_path
+    with open(summary_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "model_id",
+                "accuracy",
+                "macro_f1_no_o",
+                "num_errors",
+                "model_path",
+                "confusion_matrix_full_path",
+                "confusion_matrix_entity_path",
+                "error_analysis_path",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows(summary_rows)
+
+    LOGGER.info(f"Saved evaluation summary to {summary_path}")

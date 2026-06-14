@@ -23,7 +23,6 @@ from pipeline_exam.src.schemas import CANONICAL_MODELS
 
 LOGGER = logging.getLogger(__name__)
 
-# --- AGGIORNATO: Funzione training che accetta train e val dataloader ---
 def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val_dataloader : DataLoader, 
              dev : device, optimizer : Optimizer, criterion : CrossEntropyLoss) -> tuple[Dict[str, Any] | None, float, float]:
     
@@ -36,10 +35,19 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
         model.train()
         epoch_train_loss = 0.0
         
-        for batch_x, batch_y in train_dataloader:
-            batch_x, batch_y = batch_x.to(dev), batch_y.to(dev)
+        for batch_x, batch_y, _ in train_dataloader:
+            if isinstance(batch_x, dict):
+                batch_x = {k: v.to(dev) for k, v in batch_x.items()}
+                batch_y = batch_y.to(dev)
+                logits = model(**batch_x)
+            else:
+                batch_x = batch_x.to(dev)
+                batch_y = batch_y.to(dev)
+                logits = model(batch_x)
+
+            if hasattr(logits, "logits"):
+                logits = logits.logits
             optimizer.zero_grad()
-            logits = model(batch_x)
             logits_flat = logits.view(-1, logits.shape[-1]) 
             batch_y_flat = batch_y.view(-1)                 
             
@@ -55,10 +63,19 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
         model.eval()
         epoch_val_loss = 0.0
         
-        with torch.no_grad(): # Nessun calcolo dei gradienti in validation!
-            for batch_x, batch_y in val_dataloader:
-                batch_x, batch_y = batch_x.to(dev), batch_y.to(dev)
-                logits = model(batch_x)
+        with torch.no_grad():
+            for batch_x, batch_y, _ in val_dataloader:
+                if isinstance(batch_x, dict):
+                    batch_x = {k: v.to(dev) for k, v in batch_x.items()}
+                    batch_y = batch_y.to(dev)
+                    logits = model(**batch_x)
+                else:
+                    batch_x = batch_x.to(dev)
+                    batch_y = batch_y.to(dev)
+                    logits = model(batch_x)
+
+                if hasattr(logits, "logits"):
+                    logits = logits.logits
                 logits_flat = logits.view(-1, logits.shape[-1]) 
                 batch_y_flat = batch_y.view(-1)                 
                 
@@ -106,6 +123,8 @@ def format_pipeline_step03_summary(
         f"- Output Model Path: {output_model_path}\n"
         f"- Epochs: {epochs}\n"
         f"- Batch Size: {batch_size}\n"
+        f"- Embedding Dimension: {embedding_dim}\n"
+        f"- Hidden Layers Dimension: {hidden_dim}\n"
         f"- Learning Rate: {lr}\n"
         f"- Device: {device_used}\n"
         f"- Final Train Loss: {final_train_loss:.4f}\n"

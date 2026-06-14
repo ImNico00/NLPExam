@@ -3,3 +3,5 @@ pipeline_exam/models/*
 pipeline_exam/run_logs/*
 .vscode
 poetry.lock
+evaluations
+evaluations_scispacy_groundtruth
