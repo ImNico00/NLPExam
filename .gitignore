@@ -5,3 +5,5 @@ pipeline_exam/run_logs/*
 poetry.lock
 evaluations
 evaluations_scispacy_groundtruth
+pipeline_exam/evaluations_scispacy_groundtruth
+pipeline_exam/src/__pycache__
