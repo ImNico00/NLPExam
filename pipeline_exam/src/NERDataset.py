@@ -55,14 +55,14 @@ class NERDataset(Dataset):
     def __len__(self) -> int:
         return len(self.sentences)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, List[str]]:
         sentence = self.sentences[idx]
         tags = self.labels[idx]
         
         token_ids = [self.vocab.word2idx.get(w, self.vocab.word2idx["[UNK]"]) for w in sentence]
         tag_ids = [self.vocab.tag2idx[t] for t in tags]
         
-        return torch.tensor(token_ids, dtype=torch.long), torch.tensor(tag_ids, dtype=torch.long)
+        return torch.tensor(token_ids, dtype=torch.long), torch.tensor(tag_ids, dtype=torch.long), sentence
     
 class TransformerNERDataset(Dataset):
     def __init__(self, file_path: Path, model_name: str, hf_token: str | None, vocab: Vocabulary | None = None):
@@ -102,44 +102,59 @@ class TransformerNERDataset(Dataset):
             max_length=256
         )
         
-        # Allineamento delle etichette!
-        word_ids = encoding.word_ids() # Mappa i sub-words all'indice della parola originale
+        word_ids = encoding.word_ids()
         label_ids = []
+        raw_tokens = [] # AGGIUNTA: Lista per le stringhe esatte
+        
         previous_word_idx = None
         
         for word_idx in word_ids:
             if word_idx is None:
-                # Token speciali ([CLS], [SEP]) -> ID -100 per essere ignorati dalla Loss
                 label_ids.append(-100)
+                raw_tokens.append("[SPECIAL]") # Es. [CLS] o [SEP]
             elif word_idx != previous_word_idx:
-                # È il PRIMO sub-token di una parola: gli diamo l'etichetta vera
                 tag_str = tags[word_idx]
                 label_ids.append(self.vocab.tag2idx[tag_str])
+                raw_tokens.append(words[word_idx]) # La parola intera originale
             else:
-                # È un sub-token successivo di una parola già etichettata: lo ignoriamo
                 label_ids.append(-100)
+                raw_tokens.append(words[word_idx]) # Sub-token successivi (li teniamo tracciati!)
             previous_word_idx = word_idx
 
-        return torch.tensor(encoding["input_ids"], dtype=torch.long), torch.tensor(label_ids, dtype=torch.long)
+        # AGGIUNTA: Restituiamo anche i raw_tokens allineati
+        return torch.tensor(encoding["input_ids"], dtype=torch.long), torch.tensor(label_ids, dtype=torch.long), raw_tokens
     
 
 def transformer_collate(batch):
-    """Il collate_fn specifico per i Transformers"""
     input_ids = [item[0] for item in batch]
     labels = [item[1] for item in batch]
+    raw_sentences = [item[2] for item in batch] # Estraiamo le stringhe
     
-    # Pad input_ids con 0
     padded_input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    # Pad labels con -100 (fondamentale per non alterare la Loss di BERT)
     padded_labels = pad_sequence(labels, batch_first=True, padding_value=-100)
     
-    return padded_input_ids, padded_labels
+    # Appiattiamo le stringhe replicando esattamente la forma del tensore (padding)
+    max_len = padded_input_ids.size(1)
+    flat_raw_words = []
+    for seq in raw_sentences:
+        flat_raw_words.extend(seq)
+        flat_raw_words.extend(["[PAD]"] * (max_len - len(seq)))
+        
+    return padded_input_ids, padded_labels, flat_raw_words
 
-def pad_collate(batch: List[Tuple[torch.Tensor, torch.Tensor]]) -> Tuple[torch.Tensor, torch.Tensor]:
+def pad_collate(batch):
     sentences = [item[0] for item in batch]
     labels = [item[1] for item in batch]
+    raw_sentences = [item[2] for item in batch] # Estraiamo le stringhe
     
     padded_sentences = pad_sequence(sentences, batch_first=True, padding_value=0)
     padded_labels = pad_sequence(labels, batch_first=True, padding_value=0)
     
-    return padded_sentences, padded_labels
+    # Appiattiamo le stringhe replicando esattamente la forma del tensore (padding)
+    max_len = padded_sentences.size(1)
+    flat_raw_words = []
+    for seq in raw_sentences:
+        flat_raw_words.extend(seq)
+        flat_raw_words.extend(["[PAD]"] * (max_len - len(seq)))
+        
+    return padded_sentences, padded_labels, flat_raw_words

@@ -5,11 +5,13 @@ import argparse
 import logging
 import pickle
 from pathlib import Path
+import csv
 
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch import device
+import pandas as pd
 from typing import cast
 
 from sklearn.metrics import classification_report, confusion_matrix # type: ignore
@@ -18,18 +20,58 @@ import seaborn as sns
 
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file
 from pipeline_exam.src.models import get_model
-from pipeline_exam.src.NERDataset import NERDataset, TransformerNERDataset, pad_collate, transformer_collate
+from pipeline_exam.src.NERDataset import NERDataset, TransformerNERDataset, Vocabulary, pad_collate, transformer_collate
 from pipeline_exam.src.schemas import CANONICAL_MODELS
 
 LOGGER = logging.getLogger(__name__)
 
-def evaluate_model(model: nn.Module, dataloader: DataLoader, dev: device, vocab) -> tuple[list, list]:
+def collect_errors(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab) -> list[dict]:
+    model.eval()
+    errors = []
+
+    with torch.no_grad():
+        # IL DATALOADER ORA RESTITUISCE 3 ELEMENTI
+        for batch_x, batch_y, flat_raw_words in dataloader:
+            batch_x, batch_y = batch_x.to(dev), batch_y.to(dev)
+
+            logits = model(batch_x)
+            preds = torch.argmax(logits, dim=-1)
+
+            preds_flat = preds.view(-1).cpu().numpy()
+            labels_flat = batch_y.view(-1).cpu().numpy()
+
+            # Maschera per ignorare il padding (sia 0 che -100)
+            mask = (labels_flat != 0) & (labels_flat != -100)
+
+            # Estraiamo solo i valori validi
+            valid_labels = labels_flat[mask]
+            valid_preds = preds_flat[mask]
+            
+            # Filtriamo anche le parole usando la stessa identica maschera!
+            import numpy as np
+            valid_raw_words = np.array(flat_raw_words)[mask]
+
+            for real_word, true_id, pred_id in zip(valid_raw_words, valid_labels, valid_preds):
+                true_tag = vocab.idx2tag[true_id]
+                pred_tag = vocab.idx2tag[pred_id]
+
+                if true_tag != pred_tag:
+                    errors.append({
+                        "token": real_word,
+                        "true_tag": true_tag,
+                        "predicted_tag": pred_tag,
+                        "error_type": f"{true_tag} -> {pred_tag}"
+                    })
+
+    return errors
+
+def evaluate_model(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab) -> tuple[list, list]:
     model.eval()
     all_preds = []
     all_labels = []
     
     with torch.no_grad():
-        for batch_x, batch_y in dataloader:
+        for batch_x, batch_y, _ in dataloader:
             batch_x, batch_y = batch_x.to(dev), batch_y.to(dev)
             
             logits = model(batch_x)
@@ -38,7 +80,7 @@ def evaluate_model(model: nn.Module, dataloader: DataLoader, dev: device, vocab)
             preds_flat = preds.view(-1).cpu().numpy()
             labels_flat = batch_y.view(-1).cpu().numpy()
             
-            # CRITICO: Ignoriamo sia il padding della BiLSTM (0) sia quello dei Transformers (-100)
+            # Ignoriamo il padding
             mask = (labels_flat != 0) & (labels_flat != -100)
             
             all_preds.extend(preds_flat[mask])
@@ -75,12 +117,12 @@ def build_step04_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     )
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     models_dir = default_repo_root / "pipeline_exam" / "models"
-    plots_dir = default_repo_root / "pipeline_exam" / "plots"
+    evaluation_dir = default_repo_root / "pipeline_exam" / "evaluations"
     
     parser.add_argument("--tokenized-dataset-path", default=str(processed_dir / "perizie_bio_test.tsv"))
     parser.add_argument("--vocab-path", default=str(processed_dir / "vocab.pkl"))
     parser.add_argument("--models-dir", default=str(models_dir), help="Cartella contenente i file .pth")
-    parser.add_argument("--output-plots-dir", default=str(plots_dir), help="Cartella dove salvare le Matrici di Confusione")
+    parser.add_argument("--output-eval-dir", default=str(evaluation_dir), help="Cartella dove salvare le Matrici di Confusione")
     
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--embedding-dim", type=int, default=128)
@@ -97,8 +139,8 @@ def run_step04(args: argparse.Namespace) -> None:
     dev = torch.device(args.device)
     LOGGER.info(f"🚀 Avvio Evaluation sul dispositivo: {dev.type.upper()}")
     
-    plots_dir = Path(args.output_plots_dir)
-    plots_dir.mkdir(parents=True, exist_ok=True)
+    evaluation_dir = Path(args.output_eval_dir)
+    evaluation_dir.mkdir(parents=True, exist_ok=True)
     models_dir = Path(args.models_dir)
     
     huggingface_api_key = os.environ.get("HUGGINGFACE_API_KEY")
@@ -157,7 +199,11 @@ def run_step04(args: argparse.Namespace) -> None:
         ).to(dev)
 
         checkpoint = torch.load(model_path, map_location=dev, weights_only=False)
-        model.load_state_dict(checkpoint["model_state_dict"])
+
+        if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+            model.load_state_dict(checkpoint["model_state_dict"])
+        else:
+            model.load_state_dict(checkpoint)
 
         labels_tags, preds_tags = evaluate_model(model, dataloader, dev, vocab)
         labels = sorted(set(labels_tags))
@@ -176,7 +222,6 @@ def run_step04(args: argparse.Namespace) -> None:
         
         LOGGER.info(f"Classification Report ({model_id.upper()}):\n{report_str}")
         
-        
         cm = confusion_matrix(labels_tags, preds_tags, labels=labels)
         plt.figure(figsize=(10, 8))
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
@@ -184,9 +229,27 @@ def run_step04(args: argparse.Namespace) -> None:
         plt.ylabel('True BIO Tag')
         plt.xlabel('Predicted BIO Tag')
         
-        cm_path = plots_dir / f"{model_id}_confusion_matrix.png"
+        cm_path = evaluation_dir / f"{model_id}_confusion_matrix.png"
         plt.savefig(cm_path)
         plt.close()
+
+        errors = collect_errors(
+            model=model, 
+            dataloader=dataloader, 
+            dev=dev, 
+            vocab=vocab
+        )
+        output_path = evaluation_dir / f"{model_id}_error_analysis.csv"
+
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["token", "true_tag", "predicted_tag", "error_type"]
+            )
+            writer.writeheader()
+            writer.writerows(errors)
+
+        LOGGER.info(f"Saved {len(errors)} errors to {output_path}")
         
         LOGGER.info(
             "\n%s",

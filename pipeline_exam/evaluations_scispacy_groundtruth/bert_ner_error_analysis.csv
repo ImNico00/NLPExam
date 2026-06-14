@@ -1,0 +1,19 @@
+token,true_tag,predicted_tag,error_type
+Administered,B-DISEASE,O,B-DISEASE -> O
+cardiovascular,O,B-DISEASE,O -> B-DISEASE
+events,O,I-DISEASE,O -> I-DISEASE
+acute,O,B-DISEASE,O -> B-DISEASE
+appendicitis,B-DISEASE,I-DISEASE,B-DISEASE -> I-DISEASE
+early-stage,B-DISEASE,O,B-DISEASE -> O
+major,I-DISEASE,O,I-DISEASE -> O
+depressive,I-DISEASE,B-DISEASE,I-DISEASE -> B-DISEASE
+beta-hemolytic,B-DISEASE,O,B-DISEASE -> O
+streptococcus,O,I-DISEASE,O -> I-DISEASE
+early-stage,O,B-DISEASE,O -> B-DISEASE
+alcohol,B-CHEMICAL,B-DISEASE,B-CHEMICAL -> B-DISEASE
+consumption,O,I-DISEASE,O -> I-DISEASE
+cigarette,O,B-DISEASE,O -> B-DISEASE
+smoking,O,I-DISEASE,O -> I-DISEASE
+fracture,B-DISEASE,O,B-DISEASE -> O
+oral,B-CHEMICAL,O,B-CHEMICAL -> O
+contraceptives,I-CHEMICAL,B-DISEASE,I-CHEMICAL -> B-DISEASE

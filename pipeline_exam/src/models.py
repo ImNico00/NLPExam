@@ -18,13 +18,13 @@ def get_model(model_id: str, vocab_size: int, num_classes: int, hf_token : str |
         )
     elif model_id == "bert_ner":
         return TransformerNER(
-            model_name=CANONICAL_MODELS["bert"], 
+            model_name=CANONICAL_MODELS["bert"],
             num_classes=num_classes,
             hf_token=hf_token
         )
     elif model_id == "biobert_ner":
         return TransformerNER(
-            model_name=CANONICAL_MODELS["biobert"], 
+            model_name=CANONICAL_MODELS["biobert"],
             num_classes=num_classes,
             hf_token=hf_token
         )
