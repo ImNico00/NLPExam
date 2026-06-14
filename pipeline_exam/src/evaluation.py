@@ -26,10 +26,8 @@ LOGGER = logging.getLogger(__name__)
 
 def evaluate_and_collect_errors(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab : Vocabulary) -> tuple[list, list, list[dict]]:
     """
-    Esegue l'inferenza sul test set una sola volta, restituendo:
-    - labels_tags: lista di tutti i tag veri (per classification_report)
-    - preds_tags: lista di tutti i tag predetti (per classification_report)
-    - errors: lista di dizionari contenenti il dettaglio degli errori
+    Esegue l'inferenza sul test set, restituendo tag veri, predetti e log degli errori
+    comprensivi della frase intera di contesto (senza ripetizioni di sub-token).
     """
     model.eval()
     
@@ -50,37 +48,53 @@ def evaluate_and_collect_errors(model: nn.Module, dataloader: DataLoader, dev: t
                 
             if hasattr(logits, "logits"):
                 logits = logits.logits
+            
             preds = torch.argmax(logits, dim=-1)
 
-            # 2. Flattening dei tensori
-            preds_flat = preds.view(-1).cpu().numpy()
-            labels_flat = batch_y.view(-1).cpu().numpy()
+            # Invece di "schiacciare" tutto, prendiamo le dimensioni del batch
+            batch_size, seq_len = batch_y.shape
 
-            # 3. Creazione della maschera per ignorare il padding
-            mask = (labels_flat != vocab.pad_tag_idx) & (labels_flat != -100)
+            # Analizziamo una frase alla volta
+            for b in range(batch_size):
+                
+                # 1. Ricostruiamo la frase originale pulita
+                sentence_tokens = []
+                last_added_word = None  # <--- VARIABILE AGGIUNTA PER IL FIX DELL'ECO
+                
+                for s in range(seq_len):
+                    word = flat_raw_words[b * seq_len + s]
+                    if word not in ["[PAD]", "[SPECIAL]"]:
+                        # Se la parola è diversa dall'ultima inserita, la aggiungiamo!
+                        if word != last_added_word:
+                            sentence_tokens.append(word)
+                            last_added_word = word
+                
+                full_sentence = " ".join(sentence_tokens)
 
-            # 4. Filtraggio dei valori validi
-            valid_labels = labels_flat[mask]
-            valid_preds = preds_flat[mask]
-            valid_raw_words = np.array(flat_raw_words)[mask]
+                # 2. Iteriamo sulle parole della frase per trovare gli errori
+                for s in range(seq_len):
+                    true_id = int(batch_y[b, s].item())
+                    pred_id = int(preds[b, s].item())
+                    
+                    # Ignoriamo il padding per il calcolo delle metriche
+                    if true_id != vocab.pad_tag_idx and true_id != -100:
+                        true_tag = vocab.idx2tag[true_id]
+                        pred_tag = vocab.idx2tag[pred_id]
+                        real_word = flat_raw_words[b * seq_len + s]
 
-            # 5. Mappatura ed estrazione simultanea
-            for real_word, true_id, pred_id in zip(valid_raw_words, valid_labels, valid_preds):
-                true_tag = vocab.idx2tag[true_id]
-                pred_tag = vocab.idx2tag[pred_id]
+                        # Raccogliamo i tag per il Classification Report
+                        all_labels_tags.append(true_tag)
+                        all_preds_tags.append(pred_tag)
 
-                # Raccogliamo TUTTI i tag per le metriche globali
-                all_labels_tags.append(true_tag)
-                all_preds_tags.append(pred_tag)
-
-                # Raccogliamo SOLO gli errori per il log
-                if true_tag != pred_tag:
-                    errors.append({
-                        "token": real_word,
-                        "true_tag": true_tag,
-                        "predicted_tag": pred_tag,
-                        "error_type": f"{true_tag} -> {pred_tag}"
-                    })
+                        # Se c'è un errore, salviamo tutto, inclusa la frase!
+                        if true_tag != pred_tag:
+                            errors.append({
+                                "token": real_word,
+                                "true_tag": true_tag,
+                                "predicted_tag": pred_tag,
+                                "error_type": f"{true_tag} -> {pred_tag}",
+                                "sentence": full_sentence  # <--- QUINTO LABEL
+                            })
 
     return all_labels_tags, all_preds_tags, errors
 
@@ -167,7 +181,6 @@ def run_step04(args: argparse.Namespace) -> None:
         # Estraiamo l'ID dinamico (es: "bilstm_model.pth" -> "bilstm")
         model_id = model_path.name.replace("_model.pth", "")
         LOGGER.info(f"\n{'='*50}\nValutazione Modello: {model_id.upper()}\n{'='*50}")
-        
 
         match(model_id):
             case "bert_ner" | "biobert_ner":
@@ -270,7 +283,7 @@ def run_step04(args: argparse.Namespace) -> None:
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,
-                fieldnames=["token", "true_tag", "predicted_tag", "error_type"]
+                fieldnames=["token", "true_tag", "predicted_tag", "error_type", "sentence"]
             )
             writer.writeheader()
             writer.writerows(errors)
