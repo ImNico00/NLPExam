@@ -281,11 +281,7 @@ def run_step04(args: argparse.Namespace) -> None:
             "model_id": model_id,
             "accuracy": accuracy,
             "macro_f1_no_o": macro_f1,
-            "num_errors": len(errors),
-            "model_path": str(model_path),
-            "confusion_matrix_full_path": str(cm_full_path),
-            "confusion_matrix_entity_path": str(cm_entity_path),
-            "error_analysis_path": str(output_path),
+            "num_errors": len(errors)
         })
         
         LOGGER.info(
@@ -308,11 +304,7 @@ def run_step04(args: argparse.Namespace) -> None:
                 "model_id",
                 "accuracy",
                 "macro_f1_no_o",
-                "num_errors",
-                "model_path",
-                "confusion_matrix_full_path",
-                "confusion_matrix_entity_path",
-                "error_analysis_path",
+                "num_errors"
             ],
         )
         writer.writeheader()
