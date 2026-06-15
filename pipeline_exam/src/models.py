@@ -15,7 +15,8 @@ def get_model(model_id: str, vocab_size: int, num_classes: int, hf_token : str |
             vocab_size=vocab_size,
             num_classes=num_classes,
             embedding_dim=kwargs.get("embedding_dim", 128),
-            hidden_dim=kwargs.get("hidden_dim", 256)
+            hidden_dim=kwargs.get("hidden_dim", 256),
+            padding_idx=kwargs.get("padding_idx", 0)
         )
     elif model_id == "bilstm_crf":
         return BiLSTM_CRF_NER(
