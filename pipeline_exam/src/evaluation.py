@@ -10,7 +10,6 @@ import csv
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import numpy as np
 from typing import cast
 
 from sklearn.metrics import classification_report, confusion_matrix # type: ignore
@@ -18,7 +17,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file
-from pipeline_exam.src.models import get_model
+from pipeline_exam.src.models import get_model, BiLSTM_CRF_NER
 from pipeline_exam.src.NERDataset import NERDataset, TransformerNERDataset, Vocabulary, pad_collate, transformer_collate
 from pipeline_exam.src.schemas import CANONICAL_MODELS
 
@@ -35,43 +34,65 @@ def evaluate_and_collect_errors(model: nn.Module, dataloader: DataLoader, dev: t
     all_preds_tags = []
     errors = []
 
+    # Controllo dinamico: stiamo usando il CRF?
+    is_crf_model = isinstance(model, BiLSTM_CRF_NER)
+
     with torch.no_grad():
         for batch_x, batch_y, flat_raw_words in dataloader:
+            
+            # 1. Spostiamo i tensori sul device
             if isinstance(batch_x, dict):
                 batch_x = {k: v.to(dev) for k, v in batch_x.items()}
-                batch_y = batch_y.to(dev)
-                logits = model(**batch_x)
             else:
                 batch_x = batch_x.to(dev)
-                batch_y = batch_y.to(dev)
-                logits = model(batch_x)
-                
-            if hasattr(logits, "logits"):
-                logits = logits.logits
-            
-            preds = torch.argmax(logits, dim=-1)
+            batch_y = batch_y.to(dev)
 
-            # Invece di "schiacciare" tutto, prendiamo le dimensioni del batch
+            # 2. Otteniamo le predizioni (Viterbi vs Argmax)
+            if is_crf_model:
+                # Inferenza CRF con Algoritmo di Viterbi
+                # Ritorna una lista di liste (escludendo i [PAD] mascherati)
+                assert isinstance(batch_x, torch.Tensor), "batch_x deve essere un Tensor per il modello CRF"
+                best_paths = model.predict(batch_x)
+                
+                # Ricreiamo un tensore "preds" delle stesse dimensioni di batch_y
+                # riempito inizialmente con il padding index per compatibilità con il tuo loop
+                preds = torch.full_like(batch_y, fill_value=vocab.pad_tag_idx)
+                
+                # Inseriamo i percorsi predetti nel tensore
+                for b_idx, path in enumerate(best_paths):
+                    path_len = len(path)
+                    preds[b_idx, :path_len] = torch.tensor(path, device=dev)
+                    
+            else:
+                # Inferenza standard per BiLSTM pura o Transformer
+                if isinstance(batch_x, dict):
+                    logits = model(**batch_x)
+                else:
+                    logits = model(batch_x)
+                    
+                if hasattr(logits, "logits"):
+                    logits = logits.logits
+                
+                preds = torch.argmax(logits, dim=-1)
+
+            # 3. Analisi degli errori (il tuo codice originale non cambia!)
             batch_size, seq_len = batch_y.shape
 
-            # Analizziamo una frase alla volta
             for b in range(batch_size):
-                
-                # 1. Ricostruiamo la frase originale pulita
+                # Ricostruiamo la frase originale pulita
                 sentence_tokens = []
-                last_added_word = None  # <--- VARIABILE AGGIUNTA PER IL FIX DELL'ECO
+                last_added_word = None
                 
                 for s in range(seq_len):
                     word = flat_raw_words[b * seq_len + s]
                     if word not in ["[PAD]", "[SPECIAL]"]:
-                        # Se la parola è diversa dall'ultima inserita, la aggiungiamo!
                         if word != last_added_word:
                             sentence_tokens.append(word)
                             last_added_word = word
                 
                 full_sentence = " ".join(sentence_tokens)
 
-                # 2. Iteriamo sulle parole della frase per trovare gli errori
+                # Iteriamo sulle parole della frase per trovare gli errori
                 for s in range(seq_len):
                     true_id = int(batch_y[b, s].item())
                     pred_id = int(preds[b, s].item())
@@ -82,18 +103,16 @@ def evaluate_and_collect_errors(model: nn.Module, dataloader: DataLoader, dev: t
                         pred_tag = vocab.idx2tag[pred_id]
                         real_word = flat_raw_words[b * seq_len + s]
 
-                        # Raccogliamo i tag per il Classification Report
                         all_labels_tags.append(true_tag)
                         all_preds_tags.append(pred_tag)
 
-                        # Se c'è un errore, salviamo tutto, inclusa la frase!
                         if true_tag != pred_tag:
                             errors.append({
                                 "token": real_word,
                                 "true_tag": true_tag,
                                 "predicted_tag": pred_tag,
                                 "error_type": f"{true_tag} -> {pred_tag}",
-                                "sentence": full_sentence  # <--- QUINTO LABEL
+                                "sentence": full_sentence
                             })
 
     return all_labels_tags, all_preds_tags, errors

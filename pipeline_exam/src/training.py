@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch import device
 
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file
-from pipeline_exam.src.models import get_model
+from pipeline_exam.src.models import get_model, BiLSTM_CRF_NER
 from pipeline_exam.src.NERDataset import TransformerNERDataset, transformer_collate, NERDataset, pad_collate
 from pipeline_exam.src.schemas import CANONICAL_MODELS
 
@@ -30,28 +30,47 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
     best_model_state = None
     avg_train_loss = 0.0
 
+    # Controllo dinamico: stiamo usando il modello con CRF?
+    is_crf_model = isinstance(model, BiLSTM_CRF_NER)
+
     for epoch in range(epochs):
+        # ==========================================
         # 1. FASE DI TRAINING
+        # ==========================================
         model.train()
         epoch_train_loss = 0.0
         
         for batch_x, batch_y, _ in train_dataloader:
+            # Spostamento dati sul device (GPU/CPU)
             if isinstance(batch_x, dict):
                 batch_x = {k: v.to(dev) for k, v in batch_x.items()}
-                batch_y = batch_y.to(dev)
-                logits = model(**batch_x)
             else:
                 batch_x = batch_x.to(dev)
-                batch_y = batch_y.to(dev)
-                logits = model(batch_x)
+            batch_y = batch_y.to(dev)
 
-            if hasattr(logits, "logits"):
-                logits = logits.logits
             optimizer.zero_grad()
-            logits_flat = logits.view(-1, logits.shape[-1]) 
-            batch_y_flat = batch_y.view(-1)                 
+
+            if is_crf_model:
+                # IL MODELLO CRF CALCOLA LA LOSS INTERNAMENTE
+                # Passiamo sia le x che i tags (batch_y)
+                loss = model(x=batch_x, tags=batch_y)
+            else:
+                # MODELLI STANDARD (BiLSTM pura o Transformers)
+                if isinstance(batch_x, dict):
+                    logits = model(**batch_x)
+                else:
+                    logits = model(batch_x)
+
+                if hasattr(logits, "logits"):
+                    logits = logits.logits
+                
+                # Flatten per la CrossEntropyLoss
+                logits_flat = logits.reshape(-1, logits.shape[-1])
+                batch_y_flat = batch_y.reshape(-1)             
+                
+                loss = criterion(logits_flat, batch_y_flat)
             
-            loss = criterion(logits_flat, batch_y_flat)
+            # Backpropagation comune a tutti
             loss.backward()
             optimizer.step()
             
@@ -59,7 +78,9 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
             
         avg_train_loss = epoch_train_loss / len(train_dataloader)
         
+        # ==========================================
         # 2. FASE DI VALIDATION
+        # ==========================================
         model.eval()
         epoch_val_loss = 0.0
         
@@ -67,30 +88,40 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
             for batch_x, batch_y, _ in val_dataloader:
                 if isinstance(batch_x, dict):
                     batch_x = {k: v.to(dev) for k, v in batch_x.items()}
-                    batch_y = batch_y.to(dev)
-                    logits = model(**batch_x)
                 else:
                     batch_x = batch_x.to(dev)
-                    batch_y = batch_y.to(dev)
-                    logits = model(batch_x)
+                batch_y = batch_y.to(dev)
 
-                if hasattr(logits, "logits"):
-                    logits = logits.logits
-                logits_flat = logits.view(-1, logits.shape[-1]) 
-                batch_y_flat = batch_y.view(-1)                 
-                
-                loss = criterion(logits_flat, batch_y_flat)
+                if is_crf_model:
+                    # Anche in validation passiamo i tags al forward per calcolare la Loss
+                    # e monitorare se il modello sta convergendo o andando in overfitting
+                    loss = model(x=batch_x, tags=batch_y)
+                else:
+                    if isinstance(batch_x, dict):
+                        logits = model(**batch_x)
+                    else:
+                        logits = model(batch_x)
+
+                    if hasattr(logits, "logits"):
+                        logits = logits.logits
+                        
+                    logits_flat = logits.view(-1, logits.shape[-1]) 
+                    batch_y_flat = batch_y.view(-1)                 
+                    
+                    loss = criterion(logits_flat, batch_y_flat)
+                    
                 epoch_val_loss += loss.item()
                 
         avg_val_loss = epoch_val_loss / len(val_dataloader)
         
         LOGGER.info(f"Epoca [{epoch+1:02d}/{epochs}] - Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
         
-        # 3. MODEL CHECKPOINTING (Salva se la validation loss migliora)
+        # ==========================================
+        # 3. MODEL CHECKPOINTING
+        # ==========================================
         if avg_val_loss < best_val_loss:
             LOGGER.info(f"✨ Validation Loss migliorata ({best_val_loss:.4f} -> {avg_val_loss:.4f}). Salvataggio modello in corso...")
             best_val_loss = avg_val_loss
-            # Salviamo una copia in memoria dei pesi migliori
             best_model_state = copy.deepcopy(model.state_dict())
 
     return best_model_state, avg_train_loss, best_val_loss
@@ -141,7 +172,7 @@ def build_step03_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     models_dir = default_repo_root / "pipeline_exam" / "models"
     
-    parser.add_argument("--model-id", type=str, default="bilstm", choices=["bilstm", "bert_ner", "biobert_ner"],
+    parser.add_argument("--model-id", type=str, default="bilstm", choices=["bilstm", "bert_ner", "biobert_ner", "bilstm_crf"],
                         help="ID del modello da addestrare.")
     
     parser.add_argument("--tokenized-train-path", default=None)

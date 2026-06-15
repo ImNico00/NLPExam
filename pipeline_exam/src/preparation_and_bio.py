@@ -8,6 +8,7 @@ from spacy.language import Language
 from sklearn.model_selection import train_test_split #type: ignore
 import pandas as pd
 
+from pipeline_exam.src.schemas import CANONICAL_MODELS
 from pipeline_exam.src.utils import configure_logging, patterns
 
 LOGGER = logging.getLogger(__name__)
@@ -92,10 +93,10 @@ def run_step01(args: argparse.Namespace) -> None:
             ruler.add_patterns(patterns)
         case "scibert":
             LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BERT)...")
-            nlp = spacy.load("en_core_sci_scibert")
+            nlp = spacy.load(CANONICAL_MODELS["scibert"])
         case _:
             LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BC5CDR)...")
-            nlp = spacy.load("en_ner_bc5cdr_md")
+            nlp = spacy.load(CANONICAL_MODELS["scibc5cdr"])
 
     LOGGER.info("Lettura del dataset grezzo...")
     df = pd.read_csv(dataset_path)

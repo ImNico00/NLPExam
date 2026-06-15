@@ -55,7 +55,7 @@ class NERDataset(Dataset):
         self.load_tokenized_dataset(file_path)
         
         self.vocab = vocab if vocab else Vocabulary()
-        if not vocab:
+        if vocab is None:
             df = pd.read_csv(file_path, sep="\t", keep_default_na=False)
             df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
             self.vocab.build_vocab(df)
@@ -85,7 +85,11 @@ class NERDataset(Dataset):
 class TransformerNERDataset(Dataset):
     def __init__(self, file_path: Path, model_name: str, hf_token: str | None, vocab: Vocabulary | None = None):
         """Dataset specifico per modelli HuggingFace (Sub-Word Tokenization)"""
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, token=hf_token)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, 
+            token=hf_token,
+            use_fast=True
+            )
         
         self.sentences = []
         self.labels = []
