@@ -1,14 +1,15 @@
 # Clinical NER Pipeline - NLP Exam
 
-Repository contenente l'implementazione di una pipeline end-to-end di Machine Learning per l'estrazione di entità cliniche (Named Entity Recognition) sviluppata per l'esame di NLP. La pipeline automatizza la generazione di dati, l'annotazione (BIO-tagging) e l'addestramento comparativo di reti neurali classiche e modelli Transformer (Domain Adaptation) per l'estrazione di `DISEASE` e `CHEMICAL` da referti medici.
+Repository contenente l’implementazione di una pipeline end-to-end di Machine Learning per l’estrazione automatica di entità cliniche tramite Named Entity Recognition, sviluppata per l’esame di NLP.
+La pipeline automatizza l’intero flusso di lavoro: annotazione in formato BIO e addestramento comparativo di reti neurali classiche e modelli Transformer con tecniche di domain adaptation. Il sistema consente inoltre di generare diverse pseudo-Ground Truth a partire da approcci rule-based e modelli pre-addestrati, permettendo il confronto tra differenti strategie di annotazione e training.
 
 ## 🚀 Architettura del Sistema
 
-Il progetto non si limita al training di un singolo modello, ma implementa un'architettura modulare industriale (MLOps):
+Il progetto non si limita al training di un singolo modello, ma implementa una pipeline modulare e riproducibile in stile MLOps:
 - **Data Engineering & Annotation (Step 01 & 02):** Generazione procedurale di referti medici sintetici. L'annotazione non è fissa, ma modulare: il sistema permette di generare Ground Truth diverse usando approcci Rule-Based (Dizionario) o pre-trained Transformer (scispacy BC5CDR e SciBERT). Lo Step 02 implementa una logica di Auto-Discovery per processare automaticamente tutte le varianti generate.
 - **Deep Learning Baselines (Step 03):** 
    - **BiLSTM Pura:** Sviluppata custom in PyTorch con embedding statici per stabilire una baseline iniziale di performance basata su decisioni locali.
-   - **BiLSTM-CRF:** Evoluzione neurale-statistica che ha rappresentato lo standard di riferimento prima dell'era dei Transformer. L'aggiunta di un livello *Conditional Random Field* (CRF) permette di superare i limiti delle scelte indipendenti token-by-token: sfruttando una matrice di transizione ottimizzata, il modello apprende le restrizioni strutturali dello spazio delle etichette BIO (garantendo la consistenza del tagset) ed effettua la decodifica della sequenza globale migliore a runtime tramite l'**Algoritmo di Viterbi**.
+   - **BiLSTM-CRF:** BiLSTM custom in PyTorch con l'aggiunta di un livello *Conditional Random Field* (CRF) sfruttando una matrice di transizione ottimizzata apprendendo le restrizioni strutturali dello spazio delle etichette BIO ed effettua la decodifica della sequenza globale migliore a runtime tramite l'**Algoritmo di Viterbi**.
 - **Attention & Domain Adaptation (Step 03):** Fine-tuning di Transformer Hugging Face. Confronto tra un modello generico (`bert-base-cased`) e un modello di dominio clinico (`emilyalsentzer/Bio_ClinicalBERT` addestrato su MIMIC-III).
 - **Evaluation Engine & Error Analysis (Step 04):** Modulo di validazione rigorosa che calcola lo *Strict Entity F1-Score* (escludendo programmaticamente l'over-rappresentazione della classe `O`) e genera Matrici di Confusione comparative. Inoltre, il modulo estrae automaticamente un log degli errori (.csv) contenente l'intera frase di contesto, facilitando l'ispezione visiva dei falsi positivi e dei disallineamenti di dominio.
 
@@ -28,7 +29,7 @@ Il progetto utilizza **Poetry** per la gestione rigorosa delle dipendenze, geste
    ```bash
    poetry install
    ```
-3. **Setup Architettura Biomedica:** Installa la versione corretta di spaCy e il modello clinico ScispaCy. Per garantire la riproducibilità ed evitare conflitti di tokenizzazione, il sistema fissa spaCy alla versione 3.7.x:
+3. **Setup Architettura Biomedica:** Installa la versione corretta di spaCy e il modello clinico scispaCy. Per garantire la riproducibilità ed evitare conflitti di tokenizzazione, il sistema fissa spaCy alla versione 3.7.x:
    ```bash
    poetry add "spacy>=3.7.0,<3.8.0" spacy-transformers
    poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz
