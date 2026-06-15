@@ -6,8 +6,9 @@ Repository contenente l'implementazione di una pipeline end-to-end di Machine Le
 
 Il progetto non si limita al training di un singolo modello, ma implementa un'architettura modulare industriale (MLOps):
 - **Data Engineering & Annotation (Step 01 & 02):** Generazione procedurale di referti medici sintetici. L'annotazione non è fissa, ma modulare: il sistema permette di generare Ground Truth diverse usando approcci Rule-Based (Dizionario) o pre-trained Transformer (scispacy BC5CDR e SciBERT). Lo Step 02 implementa una logica di Auto-Discovery per processare automaticamente tutte le varianti generate.
-- **Deep Learning Baseline (Step 03):** Rete **BiLSTM** sviluppata custom in PyTorch con embedding statici per stabilire una baseline di performance.
-- **Attention & Domain Adaptation (Step 03):** Fine-tuning di Transformer Hugging Face. Confronto tra un modello generico (`bert-base-cased`) e un modello di dominio clinico (`emilyalsentzer/Bio_ClinicalBERT` addestrato su MIMIC-III).
+- **Deep Learning Baselines (Step 03):** - **BiLSTM Pura:** Sviluppata custom in PyTorch con embedding statici per stabilire una baseline iniziale di performance basata su decisioni locali.
+  - [cite_start]**BiLSTM-CRF:** Evoluzione neurale-statistica che ha rappresentato lo standard di riferimento prima dell'era dei Transformer[cite: 205]. [cite_start]L'aggiunta di un livello *Conditional Random Field* (CRF) permette di superare i limiti delle scelte indipendenti token-by-token [cite: 237][cite_start]: sfruttando una matrice di transizione ottimizzata [cite: 238][cite_start], il modello apprende le restrizioni strutturali dello spazio delle etichette BIO (garantendo la consistenza del tagset) [cite: 207, 241] [cite_start]ed effettua la decodifica della sequenza globale migliore a runtime tramite l'**Algoritmo di Viterbi**[cite: 256, 258].
+- [cite_start]**Attention & Domain Adaptation (Step 03):** Fine-tuning di Transformer Hugging Face[cite: 266, 269]. [cite_start]Confronto tra un modello generico (`bert-base-cased`) e un modello di dominio clinico (`emilyalsentzer/Bio_ClinicalBERT` addestrato su MIMIC-III)[cite: 507, 964].
 - **Evaluation Engine & Error Analysis (Step 04):** Modulo di validazione rigorosa che calcola lo *Strict Entity F1-Score* (escludendo programmaticamente l'over-rappresentazione della classe `O`) e genera Matrici di Confusione comparative. Inoltre, il modulo estrae automaticamente un log degli errori (.csv) contenente l'intera frase di contesto, facilitando l'ispezione visiva dei falsi positivi e dei disallineamenti di dominio.
 
 ## ⚙️ Setup dell'Ambiente
@@ -52,7 +53,7 @@ Avvia il training loop. Grazie all'Auto-Discovery, se non specifichi percorsi ma
 
 ### Configurazione Avanzata (CLI) per il Training
 Il parser `argparse` permette di sovrascrivere gli iperparametri per sperimentare:
-- `--model-id`: Architettura da addestrare (`bilstm`, `bert_ner`, `biobert_ner`).
+- `--model-id`: Architettura da addestrare (`bilstm`, `bilstm_crf`, `bert_ner`, `biobert_ner`).
 - `--epochs`: Epoche di addestramento (default: `25`). Il sistema implementa l'*Early Checkpointing* salvando automaticamente i pesi relativi alla migliore Validation Loss.
 - `--lr`: Learning rate. Il codice lo scala dinamicamente (es. `2e-5`) in caso di fine-tuning Transformer per evitare *catastrophic forgetting*.
 - `--batch-size`: Dimensione del batch (default: `16`).
