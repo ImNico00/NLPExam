@@ -8,7 +8,7 @@ from spacy.language import Language
 from sklearn.model_selection import train_test_split #type: ignore
 import pandas as pd
 
-from pipeline_exam.src.utils import configure_logging
+from pipeline_exam.src.utils import configure_logging, patterns
 
 LOGGER = logging.getLogger(__name__)
 
@@ -61,12 +61,9 @@ def build_step01_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     raw_dir = default_repo_root / "pipeline_exam" / "data" / "raw"
     parser.add_argument("--dataset-path", default=str(raw_dir / "medical_reports_english_translated.csv"))
-    parser.add_argument("--gt-model", type=str, default="scispicy-bc5cdr", choices=["scispicy-bc5cdr", "dictionary", "scibert"],
+    parser.add_argument("--gt-model", type=str, default="scibc5cdr", choices=["scibc5cdr", "dictionary", "scibert"],
                         help="Modello per generare la ground truth")
     parser.add_argument("--output-dir", default=str(processed_dir))
-    parser.add_argument("--train-output", default=str(processed_dir / "perizie_bio_train.tsv"))
-    parser.add_argument("--val-output", default=str(processed_dir / "perizie_bio_val.tsv"))
-    parser.add_argument("--test-output", default=str(processed_dir / "perizie_bio_test.tsv"))
     parser.add_argument("--seed-split", default=int(42))
     parser.add_argument("--logging-level", default="INFO")
     return parser
@@ -77,16 +74,22 @@ def run_step01(args: argparse.Namespace) -> None:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     dataset_path = Path(args.dataset_path)
-    train_output = Path(args.train_output)
-    val_output = Path(args.val_output)
-    test_output = Path(args.test_output)
     gt_model = args.gt_model
     seed = args.seed_split
+
+    base_dir = Path(out_dir / gt_model)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    train_output = Path(base_dir / "perizie_bio_train.tsv")
+    val_output = Path(base_dir / "perizie_bio_val.tsv")
+    test_output = Path(base_dir / "perizie_bio_test.tsv")
 
     match gt_model:
         case "dictionary":
             LOGGER.info("Utilizzo di una Rule-Based con Dizionario...")
-            nlp = spacy.load("en_ner_bc5cdr_md")
+            nlp = spacy.blank("en")
+            ruler = nlp.add_pipe("entity_ruler")
+            ruler.add_patterns(patterns)
         case "scibert":
             LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BERT)...")
             nlp = spacy.load("en_core_sci_scibert")
@@ -101,7 +104,7 @@ def run_step01(args: argparse.Namespace) -> None:
     df_train, df_temp = train_test_split(df, test_size=0.2, random_state=seed)
     df_val, df_test = train_test_split(df_temp, test_size=0.5, random_state=seed)
 
-    LOGGER.info("Estrazione automatica delle entità (DISEASE, CHEMICAL) e BIO tagging...")
+    LOGGER.info("Estrazione automatica delle entità e BIO tagging...")
     df_train_tokens = initialize_ner_dataset(nlp, df_train)
     df_train_tokens.to_csv(train_output, sep='\t', index=False)
 

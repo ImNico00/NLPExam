@@ -3,7 +3,6 @@ pipeline_exam/models/*
 pipeline_exam/run_logs/*
 .vscode
 poetry.lock
-evaluations
-evaluations_scispacy_groundtruth
-pipeline_exam/evaluations_scispacy_groundtruth
+pipeline_exam/evaluations
 pipeline_exam/src/__pycache__
+pipeline_exam/data/processed/*

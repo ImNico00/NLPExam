@@ -120,18 +120,17 @@ def format_pipeline_step04_summary(
 
 def build_step04_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Start Evaluation Loop for all trained NER Models",
+        description="Start Evaluation Loop for all trained NER Models (Auto-Discovery)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     models_dir = default_repo_root / "pipeline_exam" / "models"
     evaluation_dir = default_repo_root / "pipeline_exam" / "evaluations"
     
-    parser.add_argument("--models-evaluation-summary-path", default=str(evaluation_dir / "models_evaluation_summary.csv"))
-    parser.add_argument("--tokenized-dataset-path", default=str(processed_dir / "perizie_bio_test.tsv"))
-    parser.add_argument("--vocab-path", default=str(processed_dir / "vocab.pkl"))
-    parser.add_argument("--models-dir", default=str(models_dir), help="Cartella contenente i file .pth")
-    parser.add_argument("--output-eval-dir", default=str(evaluation_dir), help="Cartella dove salvare le Matrici di Confusione")
+    # Non chiediamo più i percorsi esatti dei file, ma solo le cartelle base!
+    parser.add_argument("--processed-dir", default=str(processed_dir), help="Cartella con i test set e i vocab.pkl")
+    parser.add_argument("--models-dir", default=str(models_dir), help="Cartella base contenente le sottocartelle dei modelli")
+    parser.add_argument("--output-eval-base-dir", default=str(evaluation_dir), help="Cartella base dove salvare le valutazioni")
     
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--embedding-dim", type=int, default=128)
@@ -148,179 +147,180 @@ def run_step04(args: argparse.Namespace) -> None:
     dev = torch.device(args.device)
     LOGGER.info(f"🚀 Avvio Evaluation sul dispositivo: {dev.type.upper()}")
     
-    evaluation_dir = Path(args.output_eval_dir)
-    evaluation_dir.mkdir(parents=True, exist_ok=True)
-    models_dir = Path(args.models_dir)
+    models_base_dir = Path(args.models_dir)
+    processed_base_dir = Path(args.processed_dir)
+    evaluations_base_dir = Path(args.output_eval_base_dir)
     
     huggingface_api_key = os.environ.get("HUGGINGFACE_API_KEY")
     if not huggingface_api_key:
         LOGGER.warning("HUGGINGFACE_API_KEY not set -- unauthenticated may fail.")
     
-    vocab_path = Path(args.vocab_path)
-    if not vocab_path.exists():
-        LOGGER.error(f"Vocabolario non trovato in {vocab_path}!")
+    if not models_base_dir.exists():
+        LOGGER.error(f"Cartella modelli non trovata in {models_base_dir}. Esegui prima lo Step 03.")
         return
-        
-    with open(vocab_path, "rb") as f:
-        vocab = pickle.load(f)
-        
-    tokenized_dataset_path = Path(args.tokenized_dataset_path)
-    if not tokenized_dataset_path.exists():
-        raise FileNotFoundError(f"Test dataset not found: {tokenized_dataset_path}")
 
-    model_files = sorted(models_dir.glob("*_model.pth"))
-    if not model_files:
-        LOGGER.warning(f"Nessun modello trovato in {models_dir}. Esegui prima lo Step 03.")
-        return
-        
-    LOGGER.info(f"Trovati {len(model_files)} modelli da valutare. Inizio ciclo...")
-
-    summary_rows = []
+    # Trova tutte le sottocartelle dentro models/ (es: scibc5cdr, dictionary, scibert)
+    gt_folders = [d for d in models_base_dir.iterdir() if d.is_dir()]
     
-    for model_path in model_files:
-        # Estraiamo l'ID dinamico (es: "bilstm_model.pth" -> "bilstm")
-        model_id = model_path.name.replace("_model.pth", "")
-        LOGGER.info(f"\n{'='*50}\nValutazione Modello: {model_id.upper()}\n{'='*50}")
+    if not gt_folders:
+        LOGGER.warning(f"Nessuna cartella di Ground Truth trovata in {models_base_dir}.")
+        return
 
-        match(model_id):
-            case "bert_ner" | "biobert_ner":
-                canonical_model = CANONICAL_MODELS["bert"] if model_id == "bert_ner" else CANONICAL_MODELS["biobert"]
-                dataset = TransformerNERDataset(
-                    file_path=tokenized_dataset_path, 
-                    model_name=canonical_model,
-                    hf_token=huggingface_api_key,
-                    vocab=vocab
-                )
-                dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=transformer_collate)
-            case _:
-                dataset = NERDataset(tokenized_dataset_path, vocab=vocab)
-                dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=pad_collate)
+    LOGGER.info(f"Trovate {len(gt_folders)} Ground Truth da valutare. Inizio ciclo...")
+
+    # --- CICLO SULLE GROUND TRUTH ---
+    for gt_folder in gt_folders:
+        gt_model_name = gt_folder.name
+        LOGGER.info(f"\n{'*'*60}\nInizio Valutazione per Ground Truth: {gt_model_name.upper()}\n{'*'*60}")
+
+        # 1. Definiamo i percorsi specifici per questa Ground Truth
+        vocab_path = processed_base_dir / gt_model_name / "vocab.pkl"
+        tokenized_dataset_path = processed_base_dir / gt_model_name / "perizie_bio_test.tsv"
+        
+        # ECCO LA CARTELLA DINAMICA CHE CHIEDEVI:
+        evaluation_dir = evaluations_base_dir / f"evaluations_groundtruth_{gt_model_name}"
+        evaluation_dir.mkdir(parents=True, exist_ok=True)
+
+        if not vocab_path.exists() or not tokenized_dataset_path.exists():
+            LOGGER.warning(f"File di test o vocab mancanti per {gt_model_name}. Salto...")
+            continue
+
+        with open(vocab_path, "rb") as f:
+            vocab = pickle.load(f)
+
+        model_files = sorted(gt_folder.glob("*_model.pth"))
+        if not model_files:
+            LOGGER.warning(f"Nessun modello trovato in {gt_folder}. Salto...")
+            continue
+
+        summary_rows = []
+        
+        # --- CICLO SUI MODELLI ADDESTRATI (BiLSTM, BERT, BioBERT) ---
+        for model_path in model_files:
+            model_id = model_path.name.replace("_model.pth", "")
+            LOGGER.info(f"\n{'='*50}\nValutazione Modello: {model_id.upper()}\n{'='*50}")
+
+            match(model_id):
+                case "bert_ner" | "biobert_ner":
+                    canonical_model = CANONICAL_MODELS["bert"] if model_id == "bert_ner" else CANONICAL_MODELS["biobert"]
+                    dataset = TransformerNERDataset(
+                        file_path=tokenized_dataset_path, 
+                        model_name=canonical_model,
+                        hf_token=huggingface_api_key,
+                        vocab=vocab
+                    )
+                    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=transformer_collate)
+                case _:
+                    dataset = NERDataset(tokenized_dataset_path, vocab=vocab)
+                    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=pad_collate)
             
-        model = get_model(
-            model_id=model_id,
-            vocab_size=len(vocab.word2idx),
-            num_classes=len(vocab.tag2idx),
-            embedding_dim=args.embedding_dim,
-            hidden_dim=args.hidden_dim,
-            hf_token=huggingface_api_key
-        ).to(dev)
+            model = get_model(
+                model_id=model_id,
+                vocab_size=len(vocab.word2idx),
+                num_classes=len(vocab.tag2idx),
+                embedding_dim=args.embedding_dim,
+                hidden_dim=args.hidden_dim,
+                hf_token=huggingface_api_key
+            ).to(dev)
 
-        checkpoint = torch.load(model_path, map_location=dev, weights_only=False)
+            checkpoint = torch.load(model_path, map_location=dev, weights_only=False)
 
-        if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-            model.load_state_dict(checkpoint["model_state_dict"])
-        else:
-            model.load_state_dict(checkpoint)
+            if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+                model.load_state_dict(checkpoint["model_state_dict"])
+            else:
+                model.load_state_dict(checkpoint)
 
-        labels_tags, preds_tags, errors = evaluate_and_collect_errors(model, dataloader, dev, vocab)
+            labels_tags, preds_tags, errors = evaluate_and_collect_errors(model, dataloader, dev, vocab)
 
-        all_labels = sorted(set(labels_tags) | set(preds_tags))
-        entity_labels = [
-            label for label in all_labels
-            if label not in {"O", vocab.pad_token}
-        ]
-            
-        report_str = classification_report(
-            labels_tags,
-            preds_tags,
-            labels=entity_labels,
-            zero_division=0,
-        )
-        raw_report = classification_report(
-            labels_tags, 
-            preds_tags, 
-            labels=entity_labels, 
-            zero_division=0, 
-            output_dict=True
+            all_labels = sorted(set(labels_tags) | set(preds_tags))
+            entity_labels = [
+                label for label in all_labels
+                if label not in {"O", vocab.pad_token}
+            ]
+                
+            report_str = classification_report(
+                labels_tags,
+                preds_tags,
+                labels=entity_labels,
+                zero_division=0,
             )
-        report_dict = cast(dict, raw_report)
-        macro_f1 = report_dict['macro avg']['f1-score']
-        
-        # Per l'Accuracy consideriamo tutti i tag, inclusi "O" (giusto per avere una metrica globale)
-        full_raw_report_dict = classification_report(labels_tags, preds_tags, zero_division=0, output_dict=True)
-        full_report_dict = cast(dict, full_raw_report_dict)
-        accuracy = full_report_dict['accuracy']
-        
-        LOGGER.info(f"Classification Report ({model_id.upper()}):\n{report_str}")
-        
-        cm_full = confusion_matrix(labels_tags, preds_tags, labels=all_labels)
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(
-            cm_full,
-            annot=True,
-            fmt="d",
-            cmap="Blues",
-            xticklabels=all_labels,
-            yticklabels=all_labels,
-        )
-        plt.title(f"Full Confusion Matrix - {model_id.upper()}")
-        plt.ylabel('True BIO Tag')
-        plt.xlabel('Predicted BIO Tag')
-        
-        cm_full_path = evaluation_dir / f"{model_id}_confusion_matrix_full.png"
-        plt.savefig(cm_full_path, bbox_inches="tight")
-        plt.close()
+            raw_report = classification_report(
+                labels_tags, 
+                preds_tags, 
+                labels=entity_labels, 
+                zero_division=0, 
+                output_dict=True
+            )
+            report_dict = cast(dict, raw_report)
+            macro_f1 = report_dict['macro avg']['f1-score']
+            
+            # Per l'Accuracy consideriamo tutti i tag, inclusi "O"
+            full_raw_report_dict = classification_report(labels_tags, preds_tags, zero_division=0, output_dict=True)
+            full_report_dict = cast(dict, full_raw_report_dict)
+            accuracy = full_report_dict['accuracy']
+            
+            LOGGER.info(f"Classification Report ({model_id.upper()}):\n{report_str}")
+            
+            # Matrice di Confusione FULL
+            cm_full = confusion_matrix(labels_tags, preds_tags, labels=all_labels)
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(cm_full, annot=True, fmt="d", cmap="Blues", xticklabels=all_labels, yticklabels=all_labels)
+            plt.title(f"Full Confusion Matrix - {model_id.upper()} ({gt_model_name.upper()})")
+            plt.ylabel('True BIO Tag')
+            plt.xlabel('Predicted BIO Tag')
+            
+            cm_full_path = evaluation_dir / f"{model_id}_confusion_matrix_full.png"
+            plt.savefig(cm_full_path, bbox_inches="tight")
+            plt.close()
 
-        cm_entity = confusion_matrix(labels_tags, preds_tags, labels=entity_labels)
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(
-            cm_entity,
-            annot=True,
-            fmt="d",
-            cmap="Blues",
-            xticklabels=entity_labels,
-            yticklabels=entity_labels,
-        )
-        plt.title(f"Entity Confusion Matrix - {model_id.upper()}")
-        plt.ylabel('True BIO Tag')
-        plt.xlabel('Predicted BIO Tag')
-        
-        cm_entity_path = evaluation_dir / f"{model_id}_confusion_matrix_entity.png"
-        plt.savefig(cm_entity_path, bbox_inches="tight")
-        plt.close()
+            # Matrice di Confusione ENTITY
+            cm_entity = confusion_matrix(labels_tags, preds_tags, labels=entity_labels)
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(cm_entity, annot=True, fmt="d", cmap="Blues", xticklabels=entity_labels, yticklabels=entity_labels)
+            plt.title(f"Entity Confusion Matrix - {model_id.upper()} ({gt_model_name.upper()})")
+            plt.ylabel('True BIO Tag')
+            plt.xlabel('Predicted BIO Tag')
+            
+            cm_entity_path = evaluation_dir / f"{model_id}_confusion_matrix_entity.png"
+            plt.savefig(cm_entity_path, bbox_inches="tight")
+            plt.close()
 
-        output_path = evaluation_dir / f"{model_id}_error_analysis.csv"
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            # Estrazione Errori CSV
+            output_path = evaluation_dir / f"{model_id}_error_analysis.csv"
+            with open(output_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=["token", "true_tag", "predicted_tag", "error_type", "sentence"])
+                writer.writeheader()
+                writer.writerows(errors)
+
+            LOGGER.info(f"Saved {len(errors)} errors to {output_path}")
+
+            summary_rows.append({
+                "model_id": model_id,
+                "accuracy": accuracy,
+                "macro_f1_no_o": macro_f1,
+                "num_errors": len(errors)
+            })
+            
+            LOGGER.info(
+                "\n%s",
+                format_pipeline_step04_summary(
+                    model_id=model_id,
+                    model_path=str(model_path),
+                    cm_full_path=str(cm_full_path),
+                    cm_entity_path=str(cm_entity_path),
+                    macro_f1=macro_f1,
+                    accuracy=accuracy
+                )
+            )
+
+        # Salvataggio del Summary Globale per QUESTA Ground Truth (nella sua cartella!)
+        summary_path = evaluation_dir / "models_evaluation_summary.csv"
+        with open(summary_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,
-                fieldnames=["token", "true_tag", "predicted_tag", "error_type", "sentence"]
+                fieldnames=["model_id", "accuracy", "macro_f1_no_o", "num_errors"],
             )
             writer.writeheader()
-            writer.writerows(errors)
+            writer.writerows(summary_rows)
 
-        LOGGER.info(f"Saved {len(errors)} errors to {output_path}")
-
-        summary_rows.append({
-            "model_id": model_id,
-            "accuracy": accuracy,
-            "macro_f1_no_o": macro_f1,
-            "num_errors": len(errors)
-        })
-        
-        LOGGER.info(
-            "\n%s",
-            format_pipeline_step04_summary(
-                model_id=model_id,
-                model_path=str(model_path),
-                cm_full_path=str(cm_full_path),
-                cm_entity_path=str(cm_entity_path),
-                macro_f1=macro_f1,
-                accuracy=accuracy
-            )
-        )
-
-    summary_path = args.models_evaluation_summary_path
-    with open(summary_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=[
-                "model_id",
-                "accuracy",
-                "macro_f1_no_o",
-                "num_errors"
-            ],
-        )
-        writer.writeheader()
-        writer.writerows(summary_rows)
-
-    LOGGER.info(f"Saved evaluation summary to {summary_path}")
+        LOGGER.info(f"[{gt_model_name.upper()}] Saved evaluation summary to {summary_path}")

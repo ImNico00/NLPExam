@@ -85,31 +85,51 @@ def load_yaml_file(path: str | Path) -> dict[str, Any]:
 
 patterns = [
     # --- DRUG (Farmaci) ---
-    {"label": "DRUG", "pattern": [{"LOWER": "aspirina"}]},
-    {"label": "DRUG", "pattern": [{"LOWER": "ibuprofene"}]},
-    {"label": "DRUG", "pattern": [{"LOWER": "metformina"}]},
-    {"label": "DRUG", "pattern": [{"LOWER": "paracetamolo"}]},
-    {"label": "DRUG", "pattern": [{"LOWER": "eparina"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "aspirin"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "ibuprofen"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "metformin"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "paracetamol"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "heparin"}]},
     {"label": "DRUG", "pattern": [{"LOWER": "trastuzumab"}, {"LOWER": "emtansine"}]},
-    {"label": "DRUG", "pattern": [{"LOWER": "acido"}, {"LOWER": "clavulanico"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "clavulanic"}, {"LOWER": "acid"}]},
+    # Extra trovati nel tuo dataset:
+    {"label": "DRUG", "pattern": [{"LOWER": "losartan"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "amoxicillin"}]},
+    {"label": "DRUG", "pattern": [{"LOWER": "albuterol"}]},
     
     # --- DISEASE (Malattie e Sintomi) ---
     {"label": "DISEASE", "pattern": [{"LOWER": "covid-19"}]},
-    {"label": "DISEASE", "pattern": [{"LOWER": "polmonite"}]},
-    {"label": "DISEASE", "pattern": [{"LOWER": "diabete"}, {"LOWER": "di"}, {"LOWER": "tipo"}, {"LOWER": "2"}]},
-    {"label": "DISEASE", "pattern": [{"LOWER": "ipertensione"}, {"LOWER": "arteriosa"}]},
-    {"label": "DISEASE", "pattern": [{"LOWER": "appendicite"}, {"LOWER": "acuta"}]},
-    {"label": "DISEASE", "pattern": [{"LOWER": "infarto"}, {"LOWER": "miocardico"}, {"LOWER": "acuto"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "pneumonia"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "type"}, {"LOWER": "2"}, {"LOWER": "diabetes"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "arterial"}, {"LOWER": "hypertension"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "hypertension"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "acute"}, {"LOWER": "appendicitis"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "acute"}, {"LOWER": "myocardial"}, {"LOWER": "infarction"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "major"}, {"LOWER": "depressive"}, {"LOWER": "disorder"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "bronchial"}, {"LOWER": "asthma"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "celiac"}, {"LOWER": "disease"}]},
+    {"label": "DISEASE", "pattern": [{"LOWER": "osteoarthritis"}]},
     
     # --- PROCEDURE (Procedure Mediche/Esami) ---
-    {"label": "PROCEDURE", "pattern": [{"LOWER": "risonanza"}, {"LOWER": "magnetica"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "magnetic"}, {"LOWER": "resonance"}, {"LOWER": "imaging"}]},
     {"label": "PROCEDURE", "pattern": [{"LOWER": "mri"}]},
-    {"label": "PROCEDURE", "pattern": [{"LOWER": "tac"}]},
-    {"label": "PROCEDURE", "pattern": [{"LOWER": "biopsia"}, {"LOWER": "epatica"}]},
-    {"label": "PROCEDURE", "pattern": [{"LOWER": "elettrocardiogramma"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "ct"}, {"LOWER": "scan"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "liver"}, {"LOWER": "biopsy"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "electrocardiogram"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "ecg"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "colonoscopy"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "endoscopy"}]},
+    {"label": "PROCEDURE", "pattern": [{"LOWER": "x-ray"}]},
     
     # --- ANATOMY (Anatomia) ---
-    {"label": "ANATOMY", "pattern": [{"LOWER": "femore"}, {"LOWER": "destro"}]},
-    {"label": "ANATOMY", "pattern": [{"LOWER": "polmone"}, {"LOWER": "sinistro"}]},
-    {"label": "ANATOMY", "pattern": [{"LOWER": "miocardio"}]}
+    {"label": "ANATOMY", "pattern": [{"LOWER": "right"}, {"LOWER": "femur"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "left"}, {"LOWER": "lung"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "right"}, {"LOWER": "lung"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "myocardium"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "chest"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "abdomen"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "left"}, {"LOWER": "eye"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "left"}, {"LOWER": "knee"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "kidneys"}]},
+    {"label": "ANATOMY", "pattern": [{"LOWER": "liver"}]}
 ]

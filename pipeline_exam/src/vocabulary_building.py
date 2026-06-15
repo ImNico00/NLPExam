@@ -16,7 +16,6 @@ def format_pipeline_step02_summary(
     vocab_path: str,
     vocab_size: int,
     num_classes: int,
-    batch_size: int,
     output_dir: str
     ) -> str:
     summary = (
@@ -25,7 +24,6 @@ def format_pipeline_step02_summary(
         f"- Vocabulary Path: {vocab_path}\n"
         f"- Vocabulary Size: {vocab_size} unique tokens\n"
         f"- Classes Detected: {num_classes} BIO tags\n"
-        f"- Batch Size: {batch_size}\n"
         f"- Output Directory: {output_dir}"
     )
     return summary
@@ -36,12 +34,7 @@ def build_step02_parser(default_repo_root: Path) -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
-    
-    parser.add_argument("--tokenized-dataset-path", default=str(processed_dir / "perizie_bio_train.tsv"))
-    
     parser.add_argument("--output-dir", default=str(processed_dir))
-    parser.add_argument("--vocab-path", default=str(processed_dir / "vocab.pkl"))
-    parser.add_argument("--batch-size", type=int, default=16) 
     parser.add_argument("--logging-level", default="INFO")
     return parser
 
@@ -51,28 +44,33 @@ def run_step02(args: argparse.Namespace) -> None:
     
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    tokenized_dataset_path = Path(args.tokenized_dataset_path)
-    if not tokenized_dataset_path.exists():
-        raise FileNotFoundError(f"Tokenized dataset not found: {tokenized_dataset_path}")
 
-    vocab_path = Path(args.vocab_path)
-    batch_size = args.batch_size
-
-    LOGGER.info(f"Costruzione Vocabolario utilizzando ESCLUSIVAMENTE il set di addestramento: {tokenized_dataset_path.name}...")
-    dataset = NERDataset(tokenized_dataset_path)
+    train_files = list(out_dir.glob("*/perizie_bio_train.tsv"))
     
-    with open(vocab_path, "wb") as f:
-        pickle.dump(dataset.vocab, f)
-    LOGGER.info(f"Vocabolario salvato in: {vocab_path}")
+    if not train_files:
+        LOGGER.error(f"Nessun file 'perizie_bio_train.tsv' trovato nelle sottocartelle di {out_dir}!")
+        return
+    
+    LOGGER.info(f"Trovate {len(train_files)} cartelle di dataset da processare. Inizio generazione vocabolari...")
 
-    LOGGER.info(
-        "%s",
-        format_pipeline_step02_summary(
-            tokenized_dataset_path=str(tokenized_dataset_path),
-            vocab_path=str(vocab_path),
-            vocab_size=len(dataset.vocab.word2idx),
-            num_classes=len(dataset.vocab.tag2idx),
-            batch_size=int(batch_size),
-            output_dir=str(out_dir)
-        ),
-    )
+    for train_path in train_files:
+        current_folder = train_path.parent
+        vocab_path = current_folder / "vocab.pkl"
+        
+        LOGGER.info(f"[{current_folder.name.upper()}] Costruzione Vocabolario...")
+        dataset = NERDataset(train_path)
+        with open(vocab_path, "wb") as f:
+            pickle.dump(dataset.vocab, f)
+            
+        LOGGER.info(f"[{current_folder.name.upper()}] Vocabolario salvato in: {vocab_path}")
+        LOGGER.info(
+            "\n%s",
+            format_pipeline_step02_summary(
+                tokenized_dataset_path=str(train_path),
+                vocab_path=str(vocab_path),
+                vocab_size=len(dataset.vocab.word2idx),
+                num_classes=len(dataset.vocab.tag2idx),
+                output_dir=str(current_folder)
+            ),
+        )
+        LOGGER.info("-" * 50) # Riga di separazione per i log
