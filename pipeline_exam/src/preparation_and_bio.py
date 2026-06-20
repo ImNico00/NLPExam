@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split #type: ignore
 import pandas as pd
 
 from pipeline_exam.src.schemas import CANONICAL_MODELS
-from pipeline_exam.src.utils import configure_logging, patterns
+from pipeline_exam.src.utils import configure_logging, patterns, pandas_to_stanza_json
 
 LOGGER = logging.getLogger(__name__)
 
@@ -108,9 +108,11 @@ def run_step01(args: argparse.Namespace) -> None:
     LOGGER.info("Estrazione automatica delle entità e BIO tagging...")
     df_train_tokens = initialize_ner_dataset(nlp, df_train)
     df_train_tokens.to_csv(train_output, sep='\t', index=False)
+    pandas_to_stanza_json(df_train_tokens, base_dir / "stanza_train.json")
 
     df_val_tokens = initialize_ner_dataset(nlp, df_val)
     df_val_tokens.to_csv(val_output, sep='\t', index=False)
+    pandas_to_stanza_json(df_val_tokens, base_dir / "stanza_val.json")
 
     df_test_tokens = initialize_ner_dataset(nlp, df_test)
     df_test_tokens.to_csv(test_output, sep='\t', index=False)

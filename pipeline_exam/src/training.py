@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import pickle
 from pathlib import Path
@@ -8,6 +9,7 @@ from typing import Any, Dict
 
 import os
 import copy
+import stanza
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
@@ -15,11 +17,14 @@ import torch.optim as optim
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch import device
+import subprocess
+import sys
 
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file
 from pipeline_exam.src.models import get_model, BiLSTM_CRF_NER
 from pipeline_exam.src.NERDataset import TransformerNERDataset, transformer_collate, NERDataset, pad_collate
 from pipeline_exam.src.schemas import CANONICAL_MODELS
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -105,8 +110,8 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
                     if hasattr(logits, "logits"):
                         logits = logits.logits
                         
-                    logits_flat = logits.view(-1, logits.shape[-1]) 
-                    batch_y_flat = batch_y.view(-1)                 
+                    logits_flat = logits.reshape(-1, logits.shape[-1]) 
+                    batch_y_flat = batch_y.reshape(-1)
                     
                     loss = criterion(logits_flat, batch_y_flat)
                     
@@ -172,7 +177,7 @@ def build_step03_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     models_dir = default_repo_root / "pipeline_exam" / "models"
     
-    parser.add_argument("--model-id", type=str, default="bilstm", choices=["bilstm", "bert_ner", "biobert_ner", "bilstm_crf"],
+    parser.add_argument("--model-id", type=str, default="bilstm", choices=["bilstm", "bert_ner", "biobert_ner", "bilstm_crf", "stanza"],
                         help="ID del modello da addestrare.")
     
     parser.add_argument("--tokenized-train-path", default=None)
@@ -204,6 +209,7 @@ def run_step03(args: argparse.Namespace) -> None:
     hidden_dim = args.hidden_dim
     batch_size = args.batch_size
     epochs = int(args.epochs)
+    lr_to_use = args.lr
     output_model_dir = Path(args.output_model_dir)
     
     huggingface_api_key = os.environ.get("HUGGINGFACE_API_KEY")
@@ -273,57 +279,99 @@ def run_step03(args: argparse.Namespace) -> None:
                 val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=transformer_collate)
                 
                 criterion = nn.CrossEntropyLoss(ignore_index=-100)
-                lr_to_use = 0.00002 if args.lr == 0.001 else args.lr 
+                lr_to_use = 0.00002 if args.lr == 0.001 else args.lr
+            case "stanza":
+                LOGGER.info(f"[{dataset_name.upper()}] Avvio Training di Stanza (Transformer) sui file JSON...")
+                
+                json_train_path = (train_dataset_path.parent / "stanza_train.json").resolve()
+                json_val_path = (val_dataset_path.parent / "stanza_val.json").resolve()
+                out_models_dir_abs = out_models_dir.resolve()
+                
+                if not json_train_path.exists() or not json_val_path.exists():
+                    LOGGER.error(f"File JSON per Stanza mancanti in {json_train_path.parent}!")
+                    continue
+
+                stanza_custom_model_name = f"{model_id}_model.pth"
+                
+                stanza_cmd = [
+                    sys.executable, "-m", "stanza.models.ner_tagger",
+                    "--train_file", str(json_train_path),
+                    "--eval_file", str(json_val_path),
+                    "--mode", "train",
+                    "--shorthand", "en_custom",
+                    "--bert_model", "dmis-lab/biobert-v1.1",
+                    "--no_pretrain",
+                    "--save_dir", str(out_models_dir_abs),
+                    "--save_name", stanza_custom_model_name,
+                    "--max_steps", str(epochs * sum(1 for line in open(train_dataset_path, encoding="utf-8") if not line.strip()) // batch_size), # brutale mi piace
+                    "--max_steps_no_improve", "1000",
+                    "--hidden_dim", str(hidden_dim),
+                    "--cuda" if dev.type == "cuda" else "--cpu",
+                    "--batch_size", str(batch_size),
+                    "--lr", str(lr_to_use),
+                    "--bert_learning_rate", "5e-5",
+                    "--eval_interval", "50",
+                    "--optim", "adamw",
+                    "--bert_finetune"
+                ]
+                
+                result = subprocess.run(stanza_cmd, capture_output=False)
+                
+                if result.returncode == 0:
+                    LOGGER.info(f"[{dataset_name.upper()}] Addestramento Stanza completato con successo!")
+                    output_model_path = out_models_dir / stanza_custom_model_name
+                else:
+                    LOGGER.error(f"[{dataset_name.upper()}] Errore durante l'addestramento di Stanza. Controlla i log.")
             case _:
                 train_dataset = NERDataset(train_dataset_path, vocab=vocab)
                 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=pad_collate)
                 val_dataset = NERDataset(val_dataset_path, vocab=vocab)
                 val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=pad_collate)
-                
                 criterion = nn.CrossEntropyLoss(ignore_index=0)
-                lr_to_use = args.lr
 
-        # Inizializzazione Modello e Ottimizzatore (Ricreati da zero per ogni dataset!)
-        model = get_model(
-            model_id=model_id,
-            vocab_size=len(vocab.word2idx),
-            num_classes=len(vocab.tag2idx),
-            embedding_dim=embedding_dim,
-            hidden_dim=hidden_dim,
-            hf_token=huggingface_api_key
-        ).to(dev)
 
-        optimizer = (
-            optim.AdamW(model.parameters(), lr=lr_to_use, weight_decay=0.01)
-            if model_id in {"bert_ner", "biobert_ner"}
-            else optim.Adam(model.parameters(), lr=lr_to_use)
-        )
-        
-        output_model_path = out_models_dir / f"{model_id}_model.pth"
-        
-        LOGGER.info(f"Inizio Addestramento per {epochs} epoche...")
-        best_model_state, final_train_loss, best_val_loss = training(
-            model=model,
-            epochs=epochs,
-            train_dataloader=train_dataloader,
-            val_dataloader=val_dataloader,
-            dev=dev,
-            optimizer=optimizer,
-            criterion=criterion
-        )
+        if model_id != "stanza":
+            # Inizializzazione Modello e Ottimizzatore (Ricreati da zero per ogni dataset!)
+            model = get_model(
+                model_id=model_id,
+                vocab_size=len(vocab.word2idx),
+                num_classes=len(vocab.tag2idx),
+                embedding_dim=embedding_dim,
+                hidden_dim=hidden_dim,
+                hf_token=huggingface_api_key
+            ).to(dev)
 
-        if best_model_state is not None:
-            torch.save({
-                "model_state_dict": best_model_state,
-                "model_id": model_id,
-                "vocab": vocab,
-                "num_classes": len(vocab.tag2idx),
-                "embedding_dim": embedding_dim,
-                "hidden_dim": hidden_dim,
-                "best_val_loss": best_val_loss,
-                "canonical_model": canonical_model if model_id in {"bert_ner", "biobert_ner"} else None
-            }, output_model_path)
-            LOGGER.info(f"[{dataset_name.upper()}] Modello salvato su {output_model_path}")
+            optimizer = (
+                optim.AdamW(model.parameters(), lr=lr_to_use, weight_decay=0.01)
+                if model_id in {"bert_ner", "biobert_ner"}
+                else optim.Adam(model.parameters(), lr=lr_to_use)
+            )
+            
+            output_model_path = out_models_dir / f"{model_id}_model.pth"
+            
+            LOGGER.info(f"Inizio Addestramento per {epochs} epoche...")
+            best_model_state, final_train_loss, best_val_loss = training(
+                model=model,
+                epochs=epochs,
+                train_dataloader=train_dataloader,
+                val_dataloader=val_dataloader,
+                dev=dev,
+                optimizer=optimizer,
+                criterion=criterion
+            )
+
+            if best_model_state is not None:
+                torch.save({
+                    "model_state_dict": best_model_state,
+                    "model_id": model_id,
+                    "vocab": vocab,
+                    "num_classes": len(vocab.tag2idx),
+                    "embedding_dim": embedding_dim,
+                    "hidden_dim": hidden_dim,
+                    "best_val_loss": best_val_loss,
+                    "canonical_model": canonical_model if model_id in {"bert_ner", "biobert_ner"} else None
+                }, output_model_path)
+                LOGGER.info(f"[{dataset_name.upper()}] Modello salvato su {output_model_path}")
 
         LOGGER.info(
             "\n%s",
@@ -334,14 +382,14 @@ def run_step03(args: argparse.Namespace) -> None:
                 val_path=str(val_dataset_path),
                 vocab_path=str(vocab_path),
                 output_model_path=str(output_model_path),
+                device_used=dev.type.upper(),
+                logging_level=args.logging_level,
                 batch_size=batch_size,
                 epochs=epochs,
                 lr=lr_to_use,
-                embedding_dim=embedding_dim,
                 hidden_dim=hidden_dim,
-                device_used=dev.type.upper(),
-                logging_level=args.logging_level,
-                final_train_loss=final_train_loss,
-                best_val_loss=best_val_loss
+                embedding_dim=embedding_dim if model_id != "stanza" else 0.0,
+                final_train_loss=final_train_loss if model_id != "stanza" else 0.0,
+                best_val_loss=best_val_loss if model_id != "stanza" else 0.0
             )
         )

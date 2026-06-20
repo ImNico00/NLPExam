@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 from torchcrf import CRF
+import stanza
 from transformers import AutoModelForTokenClassification, AutoConfig
 from pipeline_exam.src.schemas import CANONICAL_MODELS
 
@@ -39,13 +42,14 @@ def get_model(model_id: str, vocab_size: int, num_classes: int, hf_token : str |
             num_classes=num_classes,
             hf_token=hf_token
         )
-    elif model_id == "dummy_baseline":
-        raise NotImplementedError("Baseline non implementata.")
-        
+    elif model_id == "stanza":
+        return StanzaMedicalNER(
+            custom_model_path=kwargs.get("custom_model_path", None)
+        )
     else:
         raise ValueError(
-            f"Errore: model_id '{model_id}' non riconosciuto. "
-            "Scegli tra: ['bilstm', 'bilstm_crf', 'bert_ner', 'biobert_ner']"
+            f"Errore: model_id '{model_id}' non riconosciuto."
+             "Scegli tra: ['bilstm', 'bilstm_crf', 'bert_ner', 'biobert_ner', 'stanza']"
         )
 
 class BiLSTM_NER(nn.Module):
@@ -71,12 +75,11 @@ class BiLSTM_NER(nn.Module):
         )
         
         # 2. Layer Bi-LSTM
-        # batch_first=True si aspetta i tensori in formato (Batch, Sequenza, Feature)
         self.lstm = nn.LSTM(
             input_size=embedding_dim, 
             hidden_size=hidden_dim, 
-            num_layers=1,             # Possiamo aumentare il numero di strati (es. 2)
-            bidirectional=True,       # Cruciale per leggere il contesto a destra e sinistra
+            num_layers=1,
+            bidirectional=True,
             batch_first=True
         )
         
@@ -199,3 +202,51 @@ class TransformerNER(nn.Module):
             labels=labels,
             **kwargs
         )
+    
+
+class StanzaMedicalNER(nn.Module):
+    def __init__(self, lang: str = "en", custom_model_path: Path | None = None):
+        """
+        Wrapper per la pipeline medica di Stanza.
+        """
+        super(StanzaMedicalNER, self).__init__()
+        
+        self.lang = lang
+        
+        if custom_model_path:
+            self.pipeline = stanza.Pipeline(
+                lang=self.lang, 
+                processors='tokenize,ner',
+                ner_model_path=str(custom_model_path),
+                tokenize_no_ssplit=True
+            )
+        else:
+            stanza.download(lang=self.lang, package="mimic", processors={'ner': 'i2b2'})
+            self.pipeline = stanza.Pipeline(
+                lang=self.lang, 
+                package="mimic", 
+                processors={'ner': 'i2b2'},
+                tokenize_no_ssplit=True
+            )
+
+    def forward(self, text_batch: list[str]) -> list[list[dict]]:
+        """
+        Attenzione: Il forward di Stanza si aspetta una LISTA DI STRINGHE (testo grezzo), 
+        non un tensore di input_ids come BiLSTM o BERT.
+        """
+        batch_entities = []
+        
+        for text in text_batch:
+            doc = self.pipeline(text)
+            
+            entities = []
+            for ent in doc.entities:
+                entities.append({
+                    "text": ent.text,
+                    "type": ent.type,
+                    "start_char": ent.start_char,
+                    "end_char": ent.end_char
+                })
+            batch_entities.append(entities)
+            
+        return batch_entities

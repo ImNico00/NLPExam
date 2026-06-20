@@ -6,6 +6,7 @@ from typing import List, Tuple, Dict
 import torch
 from pathlib import Path
 from torch.nn.utils.rnn import pad_sequence
+from pipeline_exam.src.utils import align_gold_label_for_model
 
 class Vocabulary:
     def __init__(self):
@@ -48,27 +49,27 @@ class Vocabulary:
                 self.idx2tag[idx] = tag
 
 class NERDataset(Dataset):
-    def __init__(self, file_path: Path, vocab: Vocabulary | None = None):
+    def __init__(self, file_path: Path, vocab: Vocabulary | None = None, gt_model_name: str = ""):
         self.sentences: List[List[str]] = []
         self.labels: List[List[str]] = []
+        self.gt_model_name = gt_model_name
         
-        self.load_tokenized_dataset(file_path)
+        df = self.load_tokenized_dataset(file_path)
         
         self.vocab = vocab if vocab else Vocabulary()
-        if vocab is None:
-            df = pd.read_csv(file_path, sep="\t", keep_default_na=False)
-            df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
+        if not vocab:
             self.vocab.build_vocab(df)
 
     def load_tokenized_dataset(self, file_path: Path):
-        df = pd.read_csv(file_path, sep="\t", keep_default_na=False)
+        df = pd.read_csv(file_path, sep="\t", keep_default_na=False, dtype={"Token": str})
         df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
-
         for _, group in df.groupby("Sentence_ID", sort=False):
-            tokens = group["Token"].tolist()
+            tokens = [str(t) for t in group["Token"].tolist()] 
             tags = group["BIO_Tag"].tolist()
+            
             self.sentences.append(tokens)
             self.labels.append(tags)
+        return df
 
     def __len__(self) -> int:
         return len(self.sentences)
@@ -78,19 +79,25 @@ class NERDataset(Dataset):
         tags = self.labels[idx]
         
         token_ids = [self.vocab.word2idx.get(w, self.vocab.word2idx["[UNK]"]) for w in sentence]
-        tag_ids = [self.vocab.tag2idx[t] for t in tags]
+        
+        tag_ids = []
+        for t in tags:
+            aligned_tag = align_gold_label_for_model(t, self.gt_model_name) if self.gt_model_name else t
+            
+            tag_id = self.vocab.tag2idx.get(aligned_tag, self.vocab.tag2idx.get("O", 0))
+            tag_ids.append(tag_id)
         
         return torch.tensor(token_ids, dtype=torch.long), torch.tensor(tag_ids, dtype=torch.long), sentence
     
 class TransformerNERDataset(Dataset):
-    def __init__(self, file_path: Path, model_name: str, hf_token: str | None, vocab: Vocabulary | None = None):
+    def __init__(self, file_path: Path, model_name: str, hf_token: str | None, vocab: Vocabulary | None = None, gt_model_name: str = ""):
         """Dataset specifico per modelli HuggingFace (Sub-Word Tokenization)"""
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name, 
             token=hf_token,
             use_fast=True
             )
-        
+        self.gt_model_name = gt_model_name
         self.sentences = []
         self.labels = []
         
@@ -101,11 +108,10 @@ class TransformerNERDataset(Dataset):
             self.vocab.build_vocab(df)
 
     def load_tokenized_dataset(self, file_path: Path):
-        df = pd.read_csv(file_path, sep="\t", keep_default_na=False)
+        df = pd.read_csv(file_path, sep="\t", keep_default_na=False, dtype={"Token": str})
         df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
-
         for _, group in df.groupby("Sentence_ID", sort=False):
-            tokens = group["Token"].tolist()
+            tokens = [str(t) for t in group["Token"].tolist()] 
             tags = group["BIO_Tag"].tolist()
             self.sentences.append(tokens)
             self.labels.append(tags)
@@ -128,24 +134,27 @@ class TransformerNERDataset(Dataset):
         
         word_ids = encoding.word_ids()
         label_ids = []
-        raw_tokens = [] # AGGIUNTA: Lista per le stringhe esatte
+        raw_tokens = [] 
         
         previous_word_idx = None
         
         for word_idx in word_ids:
             if word_idx is None:
                 label_ids.append(-100)
-                raw_tokens.append("[SPECIAL]") # Es. [CLS] o [SEP]
+                raw_tokens.append("[SPECIAL]") 
             elif word_idx != previous_word_idx:
                 tag_str = tags[word_idx]
-                label_ids.append(self.vocab.tag2idx[tag_str])
-                raw_tokens.append(words[word_idx]) # La parola intera originale
+                
+                aligned_tag = align_gold_label_for_model(tag_str, self.gt_model_name) if self.gt_model_name else tag_str
+                label_id = self.vocab.tag2idx.get(aligned_tag, self.vocab.tag2idx.get("O", 0))
+                label_ids.append(label_id)
+                
+                raw_tokens.append(words[word_idx]) 
             else:
                 label_ids.append(-100)
-                raw_tokens.append(words[word_idx]) # Sub-token successivi (li teniamo tracciati!)
+                raw_tokens.append(words[word_idx]) 
             previous_word_idx = word_idx
 
-        # AGGIUNTA: Restituiamo anche i raw_tokens allineati
         return (
             {
                 "input_ids": torch.tensor(encoding["input_ids"], dtype=torch.long),

@@ -6,3 +6,4 @@ poetry.lock
 pipeline_exam/evaluations
 pipeline_exam/src/__pycache__
 pipeline_exam/data/processed/*
+!pipeline_exam/data/processed/golden-test.tsv
