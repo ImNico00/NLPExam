@@ -63,62 +63,40 @@ class NERDataset(Dataset):
     def load_tokenized_dataset(self, file_path: Path):
         df = pd.read_csv(file_path, sep="\t", keep_default_na=False, dtype={"Token": str})
         df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
+        
+        if self.gt_model_name:
+            df["BIO_Tag"] = df["BIO_Tag"].apply(lambda t: align_gold_label_for_model(t, self.gt_model_name))
+            
         for _, group in df.groupby("Sentence_ID", sort=False):
             tokens = [str(t) for t in group["Token"].tolist()] 
             tags = group["BIO_Tag"].tolist()
-            
+                
             self.sentences.append(tokens)
-            self.labels.append(tags)
+            self.labels.append(tags) 
+            
         return df
 
     def __len__(self) -> int:
         return len(self.sentences)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, List[str]]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, List[str], List[str]]:
         sentence = self.sentences[idx]
         tags = self.labels[idx]
         
         token_ids = [self.vocab.word2idx.get(w, self.vocab.word2idx["[UNK]"]) for w in sentence]
+        tag_ids = [self.vocab.tag2idx.get(t, self.vocab.tag2idx.get("O", 0)) for t in tags]
         
-        tag_ids = []
-        for t in tags:
-            aligned_tag = align_gold_label_for_model(t, self.gt_model_name) if self.gt_model_name else t
-            
-            tag_id = self.vocab.tag2idx.get(aligned_tag, self.vocab.tag2idx.get("O", 0))
-            tag_ids.append(tag_id)
-        
-        return torch.tensor(token_ids, dtype=torch.long), torch.tensor(tag_ids, dtype=torch.long), sentence
+        return torch.tensor(token_ids, dtype=torch.long), torch.tensor(tag_ids, dtype=torch.long), sentence, tags
     
-class TransformerNERDataset(Dataset):
+class TransformerNERDataset(NERDataset):
     def __init__(self, file_path: Path, model_name: str, hf_token: str | None, vocab: Vocabulary | None = None, gt_model_name: str = ""):
-        """Dataset specifico per modelli HuggingFace (Sub-Word Tokenization)"""
+        """Dataset specifico per modelli HuggingFace. Eredita caricamento e stato da NERDataset."""
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name, 
             token=hf_token,
             use_fast=True
-            )
-        self.gt_model_name = gt_model_name
-        self.sentences = []
-        self.labels = []
-        
-        df = self.load_tokenized_dataset(file_path)
-        
-        self.vocab = vocab if vocab else Vocabulary()
-        if not vocab:
-            self.vocab.build_vocab(df)
-
-    def load_tokenized_dataset(self, file_path: Path):
-        df = pd.read_csv(file_path, sep="\t", keep_default_na=False, dtype={"Token": str})
-        df = df[(df["Token"] != "") & (df["BIO_Tag"] != "")]
-        for _, group in df.groupby("Sentence_ID", sort=False):
-            tokens = [str(t) for t in group["Token"].tolist()] 
-            tags = group["BIO_Tag"].tolist()
-            self.sentences.append(tokens)
-            self.labels.append(tags)
-        return df
-
-    def __len__(self):
-        return len(self.sentences)
+        )
+        super().__init__(file_path=file_path, vocab=vocab, gt_model_name=gt_model_name)
 
     def __getitem__(self, idx):
         words = self.sentences[idx]
@@ -135,6 +113,7 @@ class TransformerNERDataset(Dataset):
         word_ids = encoding.word_ids()
         label_ids = []
         raw_tokens = [] 
+        raw_tags = []
         
         previous_word_idx = None
         
@@ -142,17 +121,20 @@ class TransformerNERDataset(Dataset):
             if word_idx is None:
                 label_ids.append(-100)
                 raw_tokens.append("[SPECIAL]") 
+                raw_tags.append("[PAD]")
             elif word_idx != previous_word_idx:
                 tag_str = tags[word_idx]
                 
-                aligned_tag = align_gold_label_for_model(tag_str, self.gt_model_name) if self.gt_model_name else tag_str
-                label_id = self.vocab.tag2idx.get(aligned_tag, self.vocab.tag2idx.get("O", 0))
+                # Pulizia: i tag sono GIÀ allineati dalla classe madre!
+                label_id = self.vocab.tag2idx.get(tag_str, self.vocab.tag2idx.get("O", 0))
                 label_ids.append(label_id)
                 
                 raw_tokens.append(words[word_idx]) 
+                raw_tags.append(tag_str)
             else:
                 label_ids.append(-100)
                 raw_tokens.append(words[word_idx]) 
+                raw_tags.append("[PAD]")
             previous_word_idx = word_idx
 
         return (
@@ -162,6 +144,7 @@ class TransformerNERDataset(Dataset):
             },
             torch.tensor(label_ids, dtype=torch.long),
             raw_tokens,
+            raw_tags
         )
     
 
@@ -170,6 +153,7 @@ def transformer_collate(batch):
     attention_masks = [item[0]["attention_mask"] for item in batch]
     labels = [item[1] for item in batch]
     raw_sentences = [item[2] for item in batch]
+    raw_tags = [item[3] for item in batch]
 
     padded_input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     padded_attention_masks = pad_sequence(attention_masks, batch_first=True, padding_value=0)
@@ -177,31 +161,39 @@ def transformer_collate(batch):
 
     max_len = padded_input_ids.size(1)
     flat_raw_words = []
+    flat_raw_tags = []
 
-    for seq in raw_sentences:
+    for seq, tags_seq in zip(raw_sentences, raw_tags):
         flat_raw_words.extend(seq)
         flat_raw_words.extend(["[PAD]"] * (max_len - len(seq)))
+        flat_raw_tags.extend(tags_seq)
+        flat_raw_tags.extend(["[PAD]"] * (max_len - len(tags_seq)))
 
     batch_x = {
         "input_ids": padded_input_ids,
         "attention_mask": padded_attention_masks,
     }
 
-    return batch_x, padded_labels, flat_raw_words
+    return batch_x, padded_labels, flat_raw_words, flat_raw_tags
+
 
 def pad_collate(batch):
     sentences = [item[0] for item in batch]
     labels = [item[1] for item in batch]
-    raw_sentences = [item[2] for item in batch] # Estraiamo le stringhe
+    raw_sentences = [item[2] for item in batch] 
+    raw_tags = [item[3] for item in batch]
     
     padded_sentences = pad_sequence(sentences, batch_first=True, padding_value=0)
     padded_labels = pad_sequence(labels, batch_first=True, padding_value=0)
     
-    # Appiattiamo le stringhe replicando esattamente la forma del tensore (padding)
     max_len = padded_sentences.size(1)
     flat_raw_words = []
-    for seq in raw_sentences:
+    flat_raw_tags = []
+    
+    for seq, tags_seq in zip(raw_sentences, raw_tags):
         flat_raw_words.extend(seq)
         flat_raw_words.extend(["[PAD]"] * (max_len - len(seq)))
+        flat_raw_tags.extend(tags_seq)
+        flat_raw_tags.extend(["[PAD]"] * (max_len - len(tags_seq)))
         
-    return padded_sentences, padded_labels, flat_raw_words
+    return padded_sentences, padded_labels, flat_raw_words, flat_raw_tags

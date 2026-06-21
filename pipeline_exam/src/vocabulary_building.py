@@ -58,7 +58,9 @@ def run_step02(args: argparse.Namespace) -> None:
         vocab_path = current_folder / "vocab.pkl"
         
         LOGGER.info(f"[{current_folder.name.upper()}] Costruzione Vocabolario...")
-        dataset = NERDataset(train_path)
+        gt_model_name = current_folder.name 
+        dataset = NERDataset(train_path, gt_model_name=gt_model_name)
+        
         with open(vocab_path, "wb") as f:
             pickle.dump(dataset.vocab, f)
             

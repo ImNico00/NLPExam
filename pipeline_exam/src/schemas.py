@@ -1,6 +1,6 @@
 CANONICAL_MODELS = {
     "bert": "bert-base-cased",
     "biobert": "emilyalsentzer/Bio_ClinicalBERT",
-    "scibert": "en_core_sci_scibert",
+    "scibionlp": "en_ner_bionlp13cg_md",
     "scibc5cdr": "en_ner_bc5cdr_md",
 }

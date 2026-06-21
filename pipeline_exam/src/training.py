@@ -1,42 +1,41 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import pickle
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import os
 import copy
-import stanza
 import torch
 import torch.nn as nn
-from torch.nn import CrossEntropyLoss
 import torch.optim as optim
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from torch import device
 import subprocess
 import sys
 
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file
-from pipeline_exam.src.models import get_model, BiLSTM_CRF_NER
+from pipeline_exam.src.models import get_pytorch_model
 from pipeline_exam.src.NERDataset import TransformerNERDataset, transformer_collate, NERDataset, pad_collate
 from pipeline_exam.src.schemas import CANONICAL_MODELS
 
 
 LOGGER = logging.getLogger(__name__)
 
-def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val_dataloader : DataLoader, 
-             dev : device, optimizer : Optimizer, criterion : CrossEntropyLoss) -> tuple[Dict[str, Any] | None, float, float]:
+def training(
+    model: nn.Module, 
+    epochs: int, 
+    train_dataloader: DataLoader, 
+    val_dataloader: DataLoader, 
+    dev: torch.device, 
+    optimizer: Optimizer
+) -> Tuple[Dict[str, Any] | None, float, float]:
     
     best_val_loss = float('inf')
     best_model_state = None
     avg_train_loss = 0.0
-
-    # Controllo dinamico: stiamo usando il modello con CRF?
-    is_crf_model = isinstance(model, BiLSTM_CRF_NER)
 
     for epoch in range(epochs):
         # ==========================================
@@ -45,37 +44,34 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
         model.train()
         epoch_train_loss = 0.0
         
-        for batch_x, batch_y, _ in train_dataloader:
-            # Spostamento dati sul device (GPU/CPU)
+        for batch_x, batch_y, _, _ in train_dataloader:
+            # Spostamento dati sul device
             if isinstance(batch_x, dict):
                 batch_x = {k: v.to(dev) for k, v in batch_x.items()}
             else:
                 batch_x = batch_x.to(dev)
+            
             batch_y = batch_y.to(dev)
 
             optimizer.zero_grad()
 
-            if is_crf_model:
-                # IL MODELLO CRF CALCOLA LA LOSS INTERNAMENTE
-                # Passiamo sia le x che i tags (batch_y)
-                loss = model(x=batch_x, tags=batch_y)
+            # FORWARD UNIFICATO
+            # Passiamo le labels direttamente al modello.
+            # Il modello calcolerà la loss al suo interno.
+            if isinstance(batch_x, dict):
+                outputs = model(**batch_x, labels=batch_y)
             else:
-                # MODELLI STANDARD (BiLSTM pura o Transformers)
-                if isinstance(batch_x, dict):
-                    logits = model(**batch_x)
-                else:
-                    logits = model(batch_x)
+                outputs = model(input_ids=batch_x, labels=batch_y)
 
-                if hasattr(logits, "logits"):
-                    logits = logits.logits
-                
-                # Flatten per la CrossEntropyLoss
-                logits_flat = logits.reshape(-1, logits.shape[-1])
-                batch_y_flat = batch_y.reshape(-1)             
-                
-                loss = criterion(logits_flat, batch_y_flat)
+            # Estrazione della loss dal dizionario standardizzato
+            loss = outputs["loss"]
             
-            # Backpropagation comune a tutti
+            # Sicurezza extra nel caso in cui tu usi DataParallel (più GPU) in futuro:
+            # DataParallel restituisce un vettore di loss, quindi prendiamo la media
+            if loss.dim() > 0:
+                loss = loss.mean()
+
+            # Backpropagation
             loss.backward()
             optimizer.step()
             
@@ -90,30 +86,25 @@ def training(model : nn.Module, epochs : int, train_dataloader : DataLoader, val
         epoch_val_loss = 0.0
         
         with torch.no_grad():
-            for batch_x, batch_y, _ in val_dataloader:
+            for batch_x, batch_y, _, _ in val_dataloader:
+                # Spostamento dati sul device
                 if isinstance(batch_x, dict):
                     batch_x = {k: v.to(dev) for k, v in batch_x.items()}
                 else:
                     batch_x = batch_x.to(dev)
+                
                 batch_y = batch_y.to(dev)
 
-                if is_crf_model:
-                    # Anche in validation passiamo i tags al forward per calcolare la Loss
-                    # e monitorare se il modello sta convergendo o andando in overfitting
-                    loss = model(x=batch_x, tags=batch_y)
+                # FORWARD UNIFICATO (Identico al training)
+                if isinstance(batch_x, dict):
+                    outputs = model(**batch_x, labels=batch_y)
                 else:
-                    if isinstance(batch_x, dict):
-                        logits = model(**batch_x)
-                    else:
-                        logits = model(batch_x)
+                    outputs = model(input_ids=batch_x, labels=batch_y)
 
-                    if hasattr(logits, "logits"):
-                        logits = logits.logits
-                        
-                    logits_flat = logits.reshape(-1, logits.shape[-1]) 
-                    batch_y_flat = batch_y.reshape(-1)
-                    
-                    loss = criterion(logits_flat, batch_y_flat)
+                loss = outputs["loss"]
+                
+                if loss.dim() > 0:
+                    loss = loss.mean()
                     
                 epoch_val_loss += loss.item()
                 
@@ -177,7 +168,7 @@ def build_step03_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     models_dir = default_repo_root / "pipeline_exam" / "models"
     
-    parser.add_argument("--model-id", type=str, default="bilstm", choices=["bilstm", "bert_ner", "biobert_ner", "bilstm_crf", "stanza"],
+    parser.add_argument("--model-id", type=str, default="bilstm", choices=["bilstm", "bilstm_crf", "bert_ner", "biobert_ner", "stanza"],
                         help="ID del modello da addestrare.")
     
     parser.add_argument("--tokenized-train-path", default=None)
@@ -248,6 +239,9 @@ def run_step03(args: argparse.Namespace) -> None:
             })
             
     LOGGER.info(f"Trovate {len(tasks)} configurazioni di dataset. Inizio ciclo di addestramento...")
+    final_train_loss = 0.0
+    best_val_loss = 0.0
+    output_model_path = ""
 
     for task in tasks:
         train_dataset_path = task["train"]
@@ -273,12 +267,22 @@ def run_step03(args: argparse.Namespace) -> None:
         # Inizializzazione Dataloaders
         match(model_id):
             case "bert_ner" | "biobert_ner":
-                train_dataset = TransformerNERDataset(file_path=train_dataset_path, model_name=canonical_model, hf_token=huggingface_api_key, vocab=vocab)
+                train_dataset = TransformerNERDataset(
+                    file_path=train_dataset_path, 
+                    model_name=canonical_model, 
+                    hf_token=huggingface_api_key, 
+                    vocab=vocab,
+                    gt_model_name=dataset_name
+                    )
                 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=transformer_collate)
-                val_dataset = TransformerNERDataset(file_path=val_dataset_path, model_name=canonical_model, hf_token=huggingface_api_key, vocab=vocab)
+                val_dataset = TransformerNERDataset(
+                    file_path=val_dataset_path, 
+                    model_name=canonical_model, 
+                    hf_token=huggingface_api_key, 
+                    vocab=vocab,
+                    gt_model_name=dataset_name
+                    )
                 val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=transformer_collate)
-                
-                criterion = nn.CrossEntropyLoss(ignore_index=-100)
                 lr_to_use = 0.00002 if args.lr == 0.001 else args.lr
             case "stanza":
                 LOGGER.info(f"[{dataset_name.upper()}] Avvio Training di Stanza (Transformer) sui file JSON...")
@@ -323,16 +327,23 @@ def run_step03(args: argparse.Namespace) -> None:
                 else:
                     LOGGER.error(f"[{dataset_name.upper()}] Errore durante l'addestramento di Stanza. Controlla i log.")
             case _:
-                train_dataset = NERDataset(train_dataset_path, vocab=vocab)
+                train_dataset = NERDataset(
+                    train_dataset_path, 
+                    vocab=vocab,
+                    gt_model_name=dataset_name
+                    )
                 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=pad_collate)
-                val_dataset = NERDataset(val_dataset_path, vocab=vocab)
+                val_dataset = NERDataset(
+                    val_dataset_path, 
+                    vocab=vocab,
+                    gt_model_name=dataset_name
+                )
                 val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=pad_collate)
-                criterion = nn.CrossEntropyLoss(ignore_index=0)
 
 
         if model_id != "stanza":
             # Inizializzazione Modello e Ottimizzatore (Ricreati da zero per ogni dataset!)
-            model = get_model(
+            model = get_pytorch_model(
                 model_id=model_id,
                 vocab_size=len(vocab.word2idx),
                 num_classes=len(vocab.tag2idx),
@@ -356,8 +367,7 @@ def run_step03(args: argparse.Namespace) -> None:
                 train_dataloader=train_dataloader,
                 val_dataloader=val_dataloader,
                 dev=dev,
-                optimizer=optimizer,
-                criterion=criterion
+                optimizer=optimizer
             )
 
             if best_model_state is not None:

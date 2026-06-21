@@ -18,19 +18,26 @@ def initialize_ner_dataset(nlp: Language, df: pd.DataFrame) -> pd.DataFrame:
     missing = required_columns - set(df.columns)
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
+        
     sentences_array = []
-    for _, row in df.iterrows():
-        id_referto = row['id_referto']
-        testo = str(row["testo_perizia"]) if pd.notna(row["testo_perizia"]) else ""
-        doc = nlp(testo)
-        for token in doc:
-            if not token.is_space:
-                if token.ent_iob_ == "O" or not token.ent_type_:
-                    bio_tag = "O"
-                else:
-                    bio_tag = f"{token.ent_iob_}-{token.ent_type_}"
-                sentences_array.append([id_referto, token.text, bio_tag])
-        sentences_array.append(["", "", ""])
+    docs = nlp.pipe(df["testo_perizia"].fillna("").astype(str))
+    
+    for id_referto, doc in zip(df["id_referto"], docs):
+        for sent_idx, sent in enumerate(doc.sents):
+            sent_id = f"{id_referto}_s{sent_idx}" 
+            
+            # Estraiamo i token della singola frase
+            for token in sent:
+                if not token.is_space:
+                    if token.ent_iob_ == "O" or not token.ent_type_:
+                        bio_tag = "O"
+                    else:
+                        bio_tag = f"{token.ent_iob_}-{token.ent_type_}"
+                    sentences_array.append([sent_id, token.text, bio_tag])
+            
+            # Riga vuota per chiudere LA FRASE (necessario per il formato CoNLL)
+            sentences_array.append(["", "", ""])
+            
     return pd.DataFrame(sentences_array, columns=["Sentence_ID", "Token", "BIO_Tag"])
 
 def format_pipeline_step01_summary(
@@ -62,7 +69,7 @@ def build_step01_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     processed_dir = default_repo_root / "pipeline_exam" / "data" / "processed"
     raw_dir = default_repo_root / "pipeline_exam" / "data" / "raw"
     parser.add_argument("--dataset-path", default=str(raw_dir / "medical_reports_english_translated.csv"))
-    parser.add_argument("--gt-model", type=str, default="scibc5cdr", choices=["scibc5cdr", "dictionary", "scibert"],
+    parser.add_argument("--gt-model", type=str, default="scibc5cdr", choices=["scibc5cdr", "dictionary", "scibionlp"],
                         help="Modello per generare la ground truth")
     parser.add_argument("--output-dir", default=str(processed_dir))
     parser.add_argument("--seed-split", default=int(42))
@@ -89,11 +96,12 @@ def run_step01(args: argparse.Namespace) -> None:
         case "dictionary":
             LOGGER.info("Utilizzo di una Rule-Based con Dizionario...")
             nlp = spacy.blank("en")
+            nlp.add_pipe("sentencizer")
             ruler = nlp.add_pipe("entity_ruler")
             ruler.add_patterns(patterns)
-        case "scibert":
-            LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BERT)...")
-            nlp = spacy.load(CANONICAL_MODELS["scibert"])
+        case "scibionlp":
+            LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BIONLP)...")
+            nlp = spacy.load(CANONICAL_MODELS["scibionlp"])
         case _:
             LOGGER.info("Caricamento del modello medico pre-addestrato (ScispaCy BC5CDR)...")
             nlp = spacy.load(CANONICAL_MODELS["scibc5cdr"])

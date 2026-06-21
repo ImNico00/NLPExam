@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from sys import prefix
 from typing import Any
 import json
 import pandas as pd
@@ -88,34 +89,57 @@ def load_yaml_file(path: str | Path) -> dict[str, Any]:
 
 def align_gold_label_for_model(gold_label: str, gt_taxonomy: str) -> str:
     """
-    Adatta l'etichetta del Gold Standard (ricca e completa) alla tassonomia
-    su cui il modello specifico è stato addestrato.
-    
-    gt_taxonomy indica la 'scuola di pensiero' del modello:
-    - 'scibert': solo ENTITY
-    - 'scibc5cdr': solo CHEMICAL e DISEASE
-    - 'dictionary': tassonomia completa (DRUG, DISEASE, PROCEDURE, ANATOMY)
+    Allinea l'etichetta originale del Gold Standard alla tassonomia specifica 
+    del modello generatore (Ground Truth).
+
+    Args:
+        gold_label (str): L'etichetta originale estratta dal dataset (es. 'B-Cancer').
+        gt_taxonomy (str): L'identificativo della tassonomia del modello in uso.
+            - 'scibionlp' : mappa entità granulari in DISEASE, CHEMICAL, ANATOMY.
+            - 'scibc5cdr' : mappa esclusivamente in CHEMICAL e DISEASE.
+            - 'dictionary': usa la tassonomia completa (DRUG, DISEASE, PROCEDURE, ANATOMY).
+
+    Returns:
+        str: L'etichetta tradotta e compatibile con il modello (es. 'B-DISEASE'), 
+             oppure 'O' se l'entità non è supportata dalla tassonomia corrente.
     """
+    gold_label = gold_label.strip()
+
     if gold_label in ["O", "[PAD]", "", None] or not isinstance(gold_label, str):
         return "O"
-        
+    
     parts = gold_label.split("-", 1)
     if len(parts) == 2:
         prefix, base_label = parts
     else:
         prefix, base_label = "", gold_label
 
-    # Se stiamo valutando un modello addestrato con SciBERT
-    if gt_taxonomy == "scibert":
-        return f"{prefix}-ENTITY" if prefix else "ENTITY"
-
-    elif gt_taxonomy == "scibc5cdr":
-        if base_label in ["DRUG", "CHEMICAL"]:
-            return f"{prefix}-CHEMICAL"
-        elif base_label == "DISEASE":
-            return f"{prefix}-DISEASE"
-        else:
-            return "O"
+    uppercase_label = base_label.upper()
+    
+    match gt_taxonomy:
+        case "scibionlp":
+            if uppercase_label in ["CANCER", "PATHOLOGICAL_FORMATION", "DISEASE"]:
+                return f"{prefix}-DISEASE"
+            elif uppercase_label in ["SIMPLE_CHEMICAL", "AMINO_ACID", "DRUG", "CHEMICAL"]:
+                return f"{prefix}-CHEMICAL"
+            elif uppercase_label in [
+                "ANATOMICAL_SYSTEM", "CELL", "CELLULAR_COMPONENT", 
+                "DEVELOPING_ANATOMICAL_STRUCTURE", "IMMATERIAL_ANATOMICAL_ENTITY", 
+                "MULTI-TISSUE_STRUCTURE", "ORGAN", "ORGANISM_SUBDIVISION", 
+                "TISSUE", "ANATOMY"
+            ]:
+                return f"{prefix}-ANATOMY"
+            else:
+                return "O"
+        case "scibc5cdr":
+            if uppercase_label in ["DRUG", "CHEMICAL"]:
+                return f"{prefix}-CHEMICAL"
+            elif uppercase_label == "DISEASE":
+                return f"{prefix}-DISEASE"
+            else:
+                return "O"
+        case _:
+            return gold_label
 
     return gold_label
 

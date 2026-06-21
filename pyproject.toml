@@ -38,6 +38,7 @@ pytorch-crf = "^0.7.2"
 stanza = "^1.13.0"
 spacy = "^3.7.4"
 numpy = "<2.0.0"
+seqeval = "^1.2.2"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "*"

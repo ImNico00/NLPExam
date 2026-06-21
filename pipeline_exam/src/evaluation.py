@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from html import parser
 import os
 import argparse
 import logging
@@ -13,101 +12,92 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from typing import cast
 
-from sklearn.metrics import classification_report, confusion_matrix # type: ignore
+from seqeval.metrics import classification_report, f1_score, accuracy_score
+from sklearn.metrics import confusion_matrix # type: ignore
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
 from pipeline_exam.src.utils import configure_logging, load_dotenv_file, extract_error_logs, stanza_entities_to_bio, align_gold_label_for_model
-from pipeline_exam.src.models import get_model, BiLSTM_CRF_NER
+from pipeline_exam.src.models import get_pytorch_model, StanzaMedicalNER
 from pipeline_exam.src.NERDataset import NERDataset, TransformerNERDataset, Vocabulary, pad_collate, transformer_collate
 from pipeline_exam.src.schemas import CANONICAL_MODELS
 
 LOGGER = logging.getLogger(__name__)
 
-def evaluate_and_collect_errors(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab : Vocabulary, gt_model_name: str) -> tuple[list, list, list[dict]]:
-    """
-    Esegue l'inferenza sul test set, restituendo tag veri, predetti e log degli errori
-    comprensivi della frase intera di contesto (senza ripetizioni di sub-token).
-    """
+def confusion_matrix_figure(cm_path : Path, 
+                            all_labels_tags : list, 
+                            all_preds_tags : list, 
+                            labels : list,
+                            title : str) -> None:
+    cm = confusion_matrix(all_labels_tags, all_preds_tags, labels=labels)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels)
+    plt.title(title)
+    plt.ylabel('True BIO Tag')
+    plt.xlabel('Predicted BIO Tag')
+    plt.savefig(cm_path, bbox_inches="tight")
+    plt.close()
+
+def evaluate_and_collect_errors(model: nn.Module, dataloader: DataLoader, dev: torch.device, vocab : Vocabulary, gt_model_name: str) -> tuple[list[list[str]], list[list[str]], list[dict]]:
     model.eval()
     
     all_labels_tags = []
     all_preds_tags = []
     errors = []
 
-    # Controllo dinamico: stiamo usando il CRF?
-    is_crf_model = isinstance(model, BiLSTM_CRF_NER)
-
     with torch.no_grad():
-        for batch_x, batch_y, flat_raw_words in dataloader:
+        for batch_x, batch_y, flat_raw_words, flat_raw_tags in dataloader:
             
-            # 1. Spostiamo i tensori sul device
+            # 1. Spostamento dati sul device
             if isinstance(batch_x, dict):
                 batch_x = {k: v.to(dev) for k, v in batch_x.items()}
             else:
                 batch_x = batch_x.to(dev)
             batch_y = batch_y.to(dev)
 
-            # 2. Otteniamo le predizioni (Viterbi vs Argmax)
-            if is_crf_model:
-                # Inferenza CRF con Algoritmo di Viterbi
-                # Ritorna una lista di liste (escludendo i [PAD] mascherati)
-                assert isinstance(batch_x, torch.Tensor), "batch_x deve essere un Tensor per il modello CRF"
-                best_paths = model.predict(batch_x)
-                
-                # Ricreiamo un tensore "preds" delle stesse dimensioni di batch_y
-                # riempito inizialmente con il padding index per compatibilità con il tuo loop
-                preds = torch.full_like(batch_y, fill_value=vocab.pad_tag_idx)
-                
-                # Inseriamo i percorsi predetti nel tensore
-                for b_idx, path in enumerate(best_paths):
-                    path_len = len(path)
-                    preds[b_idx, :path_len] = torch.tensor(path, device=dev)
-                    
+            # 2. FORWARD UNIFICATO (Come nello step 03)
+            if isinstance(batch_x, dict):
+                outputs = model(**batch_x, labels=batch_y)
             else:
-                # Inferenza standard per BiLSTM pura o Transformer
-                if isinstance(batch_x, dict):
-                    logits = model(**batch_x)
-                else:
-                    logits = model(batch_x)
-                    
-                if hasattr(logits, "logits"):
-                    logits = logits.logits
-                
-                preds = torch.argmax(logits, dim=-1)
+                outputs = model(input_ids=batch_x, labels=batch_y)
+
+            # 3. Estrazione predizioni
+            # N.B. Per Transformers/LSTM è un Tensore. Per CRF è una Lista di Liste di interi.
+            preds = outputs["predictions"]
 
             batch_size, seq_len = batch_y.shape
 
             for b in range(batch_size):
-                # Usiamo liste temporanee per la singola frase
                 valid_tokens = []
                 valid_true_tags = []
                 valid_pred_tags = []
 
                 for s in range(seq_len):
-                    true_id = int(batch_y[b, s].item())
-                    pred_id = int(preds[b, s].item())
+                    true_tag = flat_raw_tags[b * seq_len + s]
                     
-                    # Ignoriamo il padding e i sub-token mascherati (-100)
-                    if true_id != vocab.pad_tag_idx and true_id != -100:
-                        true_tag = vocab.idx2tag[true_id]
-                        pred_tag = vocab.idx2tag[pred_id]
-                        real_word = flat_raw_words[b * seq_len + s]
+                    # Estraiamo il pred_id in modo sicuro (gestendo sia Tensori che Liste da CRF)
+                    if isinstance(preds, torch.Tensor):
+                        pred_id = int(preds[b, s].item())
+                    else:
+                        # Se è la lista del CRF, il padding è già stato rimosso dalla decodifica.
+                        # Evitiamo IndexError se 's' va oltre i token validi.
+                        pred_id = int(preds[b][s]) if s < len(preds[b]) else 0
 
-                        true_tag = align_gold_label_for_model(true_tag, gt_model_name)
-                        pred_tag = align_gold_label_for_model(pred_tag, gt_model_name)
+                    # Filtriamo il padding
+                    if true_tag != "[PAD]":
+                        pred_tag = vocab.idx2tag.get(pred_id, "O")
+                        real_word = flat_raw_words[b * seq_len + s]
+                        true_tag_aligned = align_gold_label_for_model(true_tag, gt_model_name.lower())
+                        pred_tag_aligned = align_gold_label_for_model(pred_tag, gt_model_name.lower())
 
                         valid_tokens.append(real_word)
-                        valid_true_tags.append(true_tag)
-                        valid_pred_tags.append(pred_tag)
+                        valid_true_tags.append(true_tag_aligned)
+                        valid_pred_tags.append(pred_tag_aligned)
 
-                        # Popoliamo le metriche globali (Accuracy, F1, ecc.)
-                        all_labels_tags.append(true_tag)
-                        all_preds_tags.append(pred_tag)
+                all_labels_tags.append(valid_true_tags)
+                all_preds_tags.append(valid_pred_tags)
 
-                # Ora che abbiamo allineato tutto per questa frase, usiamo la funzione di utility
-                # Nota: la funzione ricostruirà internamente la frase con " ".join(valid_tokens)
                 errors.extend(extract_error_logs(
                     tokens=valid_tokens,
                     true_tags=valid_true_tags,
@@ -145,8 +135,7 @@ def build_step04_parser(default_repo_root: Path) -> argparse.ArgumentParser:
     models_dir = default_repo_root / "pipeline_exam" / "models"
     evaluation_dir = default_repo_root / "pipeline_exam" / "evaluations"
     
-    # Non chiediamo più i percorsi esatti dei file, ma solo le cartelle base!
-    parser.add_argument("--processed-dir", default=str(processed_dir), help="Cartella con i test set e i vocab.pkl")
+    parser.add_argument("--processed-dir", default=str(processed_dir), help="Cartella con il golden-test o i test set e i vocab.pkl")
     parser.add_argument("--models-dir", default=str(models_dir), help="Cartella base contenente le sottocartelle dei modelli")
     parser.add_argument("--output-eval-base-dir", default=str(evaluation_dir), help="Cartella base dove salvare le valutazioni")
 
@@ -181,7 +170,7 @@ def run_step04(args: argparse.Namespace) -> None:
         LOGGER.error(f"Cartella modelli non trovata in {models_base_dir}. Esegui prima lo Step 03.")
         return
 
-    # Trova tutte le sottocartelle dentro models/ (es: scibc5cdr, dictionary, scibert)
+    # Trova tutte le sottocartelle dentro models/ (es: scibc5cdr, dictionary, scibionlp, stanza, ecc.) che rappresentano le Ground Truth
     gt_folders = [d for d in models_base_dir.iterdir() if d.is_dir()]
     
     if not gt_folders:
@@ -230,40 +219,33 @@ def run_step04(args: argparse.Namespace) -> None:
 
             if model_id == "stanza":
                 LOGGER.info("Valutazione Stanza (non-tensor)...")
-                model = get_model(
-                    model_id=model_id,
-                    custom_model_path=model_path,
-                    vocab_size=len(vocab.word2idx),
-                    num_classes=len(vocab.tag2idx),
-                    hf_token=huggingface_api_key
-                )
-                df_test = pd.read_csv(tokenized_dataset_path, sep="\t")
+                model = StanzaMedicalNER(custom_model_path=model_path)
+                df_test = pd.read_csv(tokenized_dataset_path, sep="\t", keep_default_na=False, dtype={"Token": str})
                 
                 all_labels_tags = []
                 all_preds_tags = []
                 errors = []
                 
-                for _, group in df_test.groupby("Sentence_ID"):
+                for _, group in df_test.groupby("Sentence_ID", sort=False):
                     tokens = group["Token"].tolist()
                     raw_text = " ".join(tokens)
                     true_tags = group["BIO_Tag"].tolist()
                     
                     # Inferenza Stanza
-                    entities = model([raw_text])[0]
+                    entities = model.predict([raw_text])[0]
                     pred_tags = stanza_entities_to_bio(tokens, entities)
                     
-                    aligned_true = [align_gold_label_for_model(t, gt_model_name) for t in true_tags]
-                    aligned_pred = [align_gold_label_for_model(p, gt_model_name) for p in pred_tags]
+                    aligned_true = [align_gold_label_for_model(t, gt_model_name.lower()) for t in true_tags]
+                    aligned_pred = [align_gold_label_for_model(p, gt_model_name.lower()) for p in pred_tags]
                     
-                    all_labels_tags.extend(aligned_true)
-                    all_preds_tags.extend(aligned_pred)
+                    all_labels_tags.append(aligned_true)
+                    all_preds_tags.append(aligned_pred)
                     
                     errors.extend(extract_error_logs(
                         tokens=tokens,
                         true_tags=aligned_true,
                         pred_tags=aligned_pred
                     ))
-
             else:
                 # --- SETUP MODELLI PYTORCH ---
                 match(model_id):
@@ -286,7 +268,7 @@ def run_step04(args: argparse.Namespace) -> None:
                         dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, collate_fn=pad_collate)
                 
                 # Inizializziamo il modello PyTorch
-                model = get_model(
+                model = get_pytorch_model(
                     model_id=model_id,
                     vocab_size=len(vocab.word2idx),
                     num_classes=len(vocab.tag2idx),
@@ -307,58 +289,88 @@ def run_step04(args: argparse.Namespace) -> None:
             # ==========================================
             # CALCOLO METRICHE (COMUNE A TUTTI I MODELLI)
             # ==========================================
-            all_labels_sorted = sorted(set(all_labels_tags) | set(all_preds_tags))
+            flat_labels = [tag for sentence in all_labels_tags for tag in sentence]
+            flat_preds = [tag for sentence in all_preds_tags for tag in sentence]
+
+            all_labels_sorted = sorted(set(flat_labels) | set(flat_preds))
             entity_labels = [
                 label for label in all_labels_sorted
                 if label not in {"O", vocab.pad_token}
             ]
+
+            if not entity_labels:
+                LOGGER.warning(f"Nessuna entità valida trovata o predetta per {model_id}. Metriche impostate a 0.")
+                summary_rows.append({
+                    "model_id": model_id,
+                    "accuracy": 0.0,
+                    "recall": 0.0,
+                    "precision": 0.0,
+                    "macro_f1_no_o": 0.0,
+                    "num_errors": len(errors)
+                })
+                continue
                 
             report_str = classification_report(
                 all_labels_tags,
                 all_preds_tags,
-                labels=entity_labels,
                 zero_division=0,
             )
             raw_report = classification_report(
                 all_labels_tags, 
                 all_preds_tags, 
-                labels=entity_labels, 
                 zero_division=0, 
                 output_dict=True
             )
+
             report_dict = cast(dict, raw_report)
+            # Estraiamo le metriche macro (che già escludono le "O" di default in seqeval)
             macro_f1 = report_dict['macro avg']['f1-score']
-            
-            # Per l'Accuracy consideriamo tutti i tag, inclusi "O"
-            full_raw_report_dict = classification_report(all_labels_tags, all_preds_tags, zero_division=0, output_dict=True)
-            full_report_dict = cast(dict, full_raw_report_dict)
-            accuracy = full_report_dict['accuracy']
+            recall = report_dict['macro avg']['recall']
+            precision = report_dict['macro avg']['precision']
+            # Calcoliamo l'Accuracy totale (inclusi i tag "O") usando l'apposita funzione di seqeval
+            accuracy = accuracy_score(all_labels_tags, all_preds_tags)
             
             LOGGER.info(f"Classification Report ({model_id.upper()}):\n{report_str}")
             
             # Matrice di Confusione FULL
-            cm_full = confusion_matrix(all_labels_tags, all_preds_tags, labels=all_labels_sorted)
-            plt.figure(figsize=(10, 8))
-            sns.heatmap(cm_full, annot=True, fmt="d", cmap="Blues", xticklabels=all_labels_sorted, yticklabels=all_labels_sorted)
-            plt.title(f"Full Confusion Matrix - {model_id.upper()} ({gt_model_name.upper()})")
-            plt.ylabel('True BIO Tag')
-            plt.xlabel('Predicted BIO Tag')
-            
             cm_full_path = evaluation_dir / f"{model_id}_confusion_matrix_full.png"
-            plt.savefig(cm_full_path, bbox_inches="tight")
-            plt.close()
+            confusion_matrix_figure(cm_full_path, 
+                        flat_labels,
+                        flat_preds,
+                        all_labels_sorted, 
+                        title=f"Full Confusion Matrix - {model_id.upper()} ({gt_model_name.upper()})")
 
-            # Matrice di Confusione ENTITY
-            cm_entity = confusion_matrix(all_labels_tags, all_preds_tags, labels=entity_labels)
-            plt.figure(figsize=(10, 8))
-            sns.heatmap(cm_entity, annot=True, fmt="d", cmap="Blues", xticklabels=entity_labels, yticklabels=entity_labels)
-            plt.title(f"Entity Confusion Matrix - {model_id.upper()} ({gt_model_name.upper()})")
-            plt.ylabel('True BIO Tag')
-            plt.xlabel('Predicted BIO Tag')
+            true_entities = set(flat_labels) - {"O", vocab.pad_token}
             
-            cm_entity_path = evaluation_dir / f"{model_id}_confusion_matrix_entity.png"
-            plt.savefig(cm_entity_path, bbox_inches="tight")
-            plt.close()
+            if not true_entities:
+                LOGGER.warning(f"Attenzione: Nessuna entità vera trovata per {model_id}! Impossibile generare la matrice ENTITY.")
+                summary_rows.append({
+                    "model_id": model_id,
+                    "accuracy": 0.0,
+                    "recall": 0.0,
+                    "precision": 0.0,
+                    "macro_f1_no_o": 0.0,
+                    "num_errors": len(errors)
+                })
+                LOGGER.info(
+                    "\n%s",
+                    format_pipeline_step04_summary(
+                        model_id=model_id,
+                        model_path=str(model_path),
+                        cm_full_path="Not Generated (No Entities)",
+                        cm_entity_path="Not Generated (No Entities)",
+                        macro_f1=0.0,
+                        accuracy=0.0
+                    )
+                )
+                continue
+            else:
+                cm_entity_path = evaluation_dir / f"{model_id}_confusion_matrix_entity.png"
+                confusion_matrix_figure(cm_entity_path, 
+                                        flat_labels,
+                                        flat_preds,
+                                        entity_labels, 
+                                        title=f"Entity Confusion Matrix - {model_id.upper()} ({gt_model_name.upper()})")
 
             # Estrazione Errori CSV
             output_path = evaluation_dir / f"{model_id}_error_analysis.csv"
@@ -372,6 +384,8 @@ def run_step04(args: argparse.Namespace) -> None:
             summary_rows.append({
                 "model_id": model_id,
                 "accuracy": accuracy,
+                "recall": recall,
+                "precision": precision,
                 "macro_f1_no_o": macro_f1,
                 "num_errors": len(errors)
             })
@@ -393,9 +407,11 @@ def run_step04(args: argparse.Namespace) -> None:
         with open(summary_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,
-                fieldnames=["model_id", "accuracy", "macro_f1_no_o", "num_errors"],
+                fieldnames=["model_id", "accuracy", "recall", "precision", "macro_f1_no_o", "num_errors"],
             )
             writer.writeheader()
             writer.writerows(summary_rows)
 
         LOGGER.info(f"[{gt_model_name.upper()}] Saved evaluation summary to {summary_path}")
+
+
