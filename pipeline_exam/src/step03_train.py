@@ -1,4 +1,4 @@
-""" Evaluation """
+""" Training """
 
 from pathlib import Path
 import sys

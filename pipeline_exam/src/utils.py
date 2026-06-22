@@ -125,7 +125,7 @@ def align_gold_label_for_model(gold_label: str, gt_taxonomy: str) -> str:
             elif uppercase_label in [
                 "ANATOMICAL_SYSTEM", "CELL", "CELLULAR_COMPONENT", 
                 "DEVELOPING_ANATOMICAL_STRUCTURE", "IMMATERIAL_ANATOMICAL_ENTITY", 
-                "MULTI-TISSUE_STRUCTURE", "ORGAN", "ORGANISM_SUBDIVISION", 
+                "MULTI_TISSUE_STRUCTURE", "ORGAN", "ORGANISM_SUBDIVISION", 
                 "TISSUE", "ANATOMY"
             ]:
                 return f"{prefix}-ANATOMY"

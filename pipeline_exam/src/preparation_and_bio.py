@@ -4,6 +4,7 @@ import argparse
 import logging
 from pathlib import Path
 import spacy
+from spacy.util import compile_infix_regex
 from spacy.language import Language
 from sklearn.model_selection import train_test_split #type: ignore
 import pandas as pd
@@ -96,6 +97,12 @@ def run_step01(args: argparse.Namespace) -> None:
         case "dictionary":
             LOGGER.info("Utilizzo di una Rule-Based con Dizionario...")
             nlp = spacy.blank("en")
+            # ==============================================================
+            # --- CUSTOM TOKENIZER: Impedisce la divisione sui trattini ---
+            # Filtriamo le regole di base (infixes) togliendo quelle col "-"
+            custom_infixes = [pattern for pattern in nlp.Defaults.infixes if "-" not in pattern]
+            nlp.tokenizer.infix_finditer = compile_infix_regex(custom_infixes).finditer
+            
             nlp.add_pipe("sentencizer")
             ruler = nlp.add_pipe("entity_ruler")
             ruler.add_patterns(patterns)

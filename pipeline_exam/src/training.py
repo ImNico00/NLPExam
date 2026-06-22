@@ -303,7 +303,7 @@ def run_step03(args: argparse.Namespace) -> None:
                     "--eval_file", str(json_val_path),
                     "--mode", "train",
                     "--shorthand", "en_custom",
-                    "--bert_model", "dmis-lab/biobert-v1.1",
+                    "--bert_model", CANONICAL_MODELS["biobert"], # Uso lo stesso per vedere la versione stanza con il modello singolo biobert
                     "--no_pretrain",
                     "--save_dir", str(out_models_dir_abs),
                     "--save_name", stanza_custom_model_name,

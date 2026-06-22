@@ -22,18 +22,14 @@ Sentence_ID	Token	BIO_Tag
 411_s0	shoulder	I-ANATOMY
 411_s0	,	O
 411_s0	suggesting	O
-411_s0	early	O
-411_s0	-	O
-411_s0	stage	O
+411_s0	early-stage	O
 411_s0	gastric	B-DISEASE
 411_s0	ulcer	I-DISEASE
 411_s0	.	O
 		
 353_s0	Scheduled	O
 353_s0	a	O
-353_s0	follow	O
-353_s0	-	O
-353_s0	up	O
+353_s0	follow-up	O
 353_s0	echocardiogram	B-PROCEDURE
 353_s0	to	O
 353_s0	monitor	O
@@ -44,9 +40,7 @@ Sentence_ID	Token	BIO_Tag
 353_s0	brain	B-ANATOMY
 353_s0	.	O
 		
-78_s0	Brachio	B-ANATOMY
-78_s0	-	I-ANATOMY
-78_s0	metacarpal	I-ANATOMY
+78_s0	Brachio-metacarpal	B-ANATOMY
 78_s0	cast	B-PROCEDURE
 78_s0	applied	O
 78_s0	for	O
@@ -65,9 +59,7 @@ Sentence_ID	Token	BIO_Tag
 34_s0	for	O
 34_s0	group	B-DISEASE
 34_s0	A	I-DISEASE
-34_s0	beta	I-DISEASE
-34_s0	-	I-DISEASE
-34_s0	hemolytic	I-DISEASE
+34_s0	beta-hemolytic	I-DISEASE
 34_s0	streptococcus	I-DISEASE
 34_s0	was	O
 34_s0	positive	O
@@ -149,9 +141,7 @@ Sentence_ID	Token	BIO_Tag
 		
 317_s0	Scheduled	O
 317_s0	a	O
-317_s0	follow	O
-317_s0	-	O
-317_s0	up	O
+317_s0	follow-up	O
 317_s0	spirometry	B-PROCEDURE
 317_s0	to	O
 317_s0	monitor	O
@@ -220,9 +210,7 @@ Sentence_ID	Token	BIO_Tag
 382_s0	spine	I-ANATOMY
 382_s0	,	O
 382_s0	suggesting	O
-382_s0	early	O
-382_s0	-	O
-382_s0	stage	O
+382_s0	early-stage	O
 382_s0	psoriasis	B-DISEASE
 382_s0	.	O
 		
@@ -236,9 +224,7 @@ Sentence_ID	Token	BIO_Tag
 105_s0	brain	B-ANATOMY
 105_s0	,	O
 105_s0	suggesting	O
-105_s0	early	O
-105_s0	-	O
-105_s0	stage	O
+105_s0	early-stage	O
 105_s0	hypertension	B-DISEASE
 105_s0	.	O
 		
@@ -561,9 +547,7 @@ Sentence_ID	Token	BIO_Tag
 334_s0	liver	B-ANATOMY
 334_s0	,	O
 334_s0	suggesting	O
-334_s0	early	O
-334_s0	-	O
-334_s0	stage	O
+334_s0	early-stage	O
 334_s0	major	B-DISEASE
 334_s0	depressive	I-DISEASE
 334_s0	disorder	I-DISEASE
@@ -690,9 +674,7 @@ Sentence_ID	Token	BIO_Tag
 		
 462_s0	Scheduled	O
 462_s0	a	O
-462_s0	follow	O
-462_s0	-	O
-462_s0	up	O
+462_s0	follow-up	O
 462_s0	biopsy	B-PROCEDURE
 462_s0	to	O
 462_s0	monitor	O
@@ -714,9 +696,7 @@ Sentence_ID	Token	BIO_Tag
 324_s0	spine	I-ANATOMY
 324_s0	,	O
 324_s0	suggesting	O
-324_s0	early	O
-324_s0	-	O
-324_s0	stage	O
+324_s0	early-stage	O
 324_s0	COPD	B-DISEASE
 324_s0	.	O
 		
