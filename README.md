@@ -38,8 +38,8 @@ Il progetto utilizza Poetry per la gestione rigorosa delle dipendenze, gestendo 
 2. **Installa le dipendenze di base tramite Poetry:**  
 ```poetry install```
 3. **Setup Architettura Biomedica:** Installa la versione corretta di spaCy e i modelli clinici scispaCy per la generazione della Ground Truth. Per garantire la riproducibilità ed evitare conflitti di tokenizzazione, il sistema fissa spaCy alla versione 3.7.x:  
-   ```poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz```  
-   ```poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bionlp13cg_md-0.5.4.tar.gz```
+```poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz```  
+```poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bionlp13cg_md-0.5.4.tar.gz```
 
 ## 🖥 Esecuzione della Pipeline
 
