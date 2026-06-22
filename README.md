@@ -36,10 +36,10 @@ Il progetto utilizza Poetry per la gestione rigorosa delle dipendenze, gestendo 
 
 1. Clona il repository.
 2. Installa le dipendenze di base tramite Poetry:
-   poetry install
+   `poetry install`
 3. Setup Architettura Biomedica: Installa la versione corretta di spaCy e i modelli clinici scispaCy per la generazione della Ground Truth. Per garantire la riproducibilità ed evitare conflitti di tokenizzazione, il sistema fissa spaCy alla versione 3.7.x:
-   poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz
-   poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bionlp13cg_md-0.5.4.tar.gz
+   `poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz`
+   `poetry run pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bionlp13cg_md-0.5.4.tar.gz`
 
 ## 🖥 Esecuzione della Pipeline
 
@@ -49,18 +49,18 @@ La pipeline è divisa in step logici pensati per essere eseguiti tramite riga di
 
 Lo Step 01 esegue il data split (80% Train, 10% Validation, 10% Test) dal file grezzo medical_reports_english_translated.csv, tokenizza il testo e genera i tag BIO per le entità mediche. Crea inoltre file JSON dedicati al training per i modelli stanza.
 Puoi specificare quale modello usare per generare la Ground Truth tramite il flag --gt-model (scibc5cdr [default], scibionlp, dictionary):
-./script/run_step01_with_logs.sh --gt-model scibionlp
+`./script/run_step01_with_logs.sh --gt-model scibionlp`
 
 *I dati processati verranno salvati in una sottocartella dedicata alla strategia scelta: data/processed/<gt-model>/*
 
 Lo Step 02 implementa l'Auto-Discovery: scansiona automaticamente tutte le sottocartelle generate nello step precedente, analizza i dataset di training (perizie_bio_train.tsv) ed estrae i metadati necessari per l'addestramento. Costruisce le mappature in indici (Token-to-Index, Tag-to-Index) e serializza i dizionari tramite Pickle.
-./script/run_step02_with_logs.sh
+`./script/run_step02_with_logs.sh`
 
 *Output generato: Un file vocab.pkl salvato dinamicamente all'interno di ogni sottocartella di Ground Truth.*
 
 ### 2. Addestramento Modelli (Step 03)
 Avvia il training loop. Grazie all'Auto-Discovery, lo script individua automaticamente le Ground Truth generate ed esegue l'addestramento iterativo per ciascuna, salvando l'output in sottocartelle dedicate (models/<dataset_name>/<model_id>_model.pth). Il sistema implementa nativamente l'Early Checkpointing, salvando alla fine delle epoche lo stato del modello che ha registrato la Validation Loss migliore.
-./script/run_step03_with_logs.sh --model-id biobert_ner
+`./script/run_step03_with_logs.sh --model-id biobert_ner`
 
 ### Configurazione Avanzata (CLI) per il Training
 Il parser permette di sovrascrivere gli iperparametri per sperimentare:
@@ -71,12 +71,12 @@ Il parser permette di sovrascrivere gli iperparametri per sperimentare:
 - --embedding-dim / --hidden-dim: Parametri di rete (usati principalmente per le reti custom BiLSTM).
 
 Esempio per l'addestramento di una rete BiLSTM pura su CPU:
-./script/run_step03_with_logs.sh --model-id bilstm --device cpu --epochs 10
+`./script/run_step03_with_logs.sh --model-id bilstm --device cpu --epochs 15`
 
 ## 🔄 Flusso di Valutazione (Step 04)
 Una volta addestrati i modelli, la valutazione processa automaticamente tutte le sottocartelle in models/. Di default, lo script impone la Single Source of Truth valutando tutti i modelli generati sul file golden-test.tsv. 
 
-./script/run_step04_with_logs.sh
+`./script/run_step04_with_logs.sh`
 
 *Nota: Puoi disabilitare la valutazione incrociata e testare i modelli sui loro rispettivi test set estratti nello Step 01 (Silver Standard) passando il flag --no-golden-test.*
 
